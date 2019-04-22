@@ -57,7 +57,6 @@ public class PlayerManagerFight : PlayerManager
 
     public bool CanMove(int movementPointUsed)
     {
-        Debug.Log("Stats : " + m_playerStats.CurrentMovementPoint == null);
         return m_playerStats.CurrentMovementPoint >= movementPointUsed;
     }
 

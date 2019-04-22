@@ -119,7 +119,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh17806
+  m_Name: pb_Mesh52866
   serializedVersion: 9
   m_SubMeshes:
   - serializedVersion: 2
@@ -442,7 +442,7 @@ GameObject:
   - component: {fileID: 1366826999}
   - component: {fileID: 1366827005}
   m_Layer: 0
-  m_Name: Plane
+  m_Name: Ground
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

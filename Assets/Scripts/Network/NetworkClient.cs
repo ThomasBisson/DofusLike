@@ -20,10 +20,6 @@ public class NetworkClient : MonoBehaviour
     [Header("Server Connection")]
     [SerializeField]
     private Transform m_networkContainer;
-    [SerializeField]
-    private GameObject m_playerMainPrefab;
-    [SerializeField]
-    private GameObject m_ennemyPrefab;
 
     private Dictionary<string, NetworkIdentity> m_serverObjects = new Dictionary<string, NetworkIdentity>();
 
@@ -88,7 +84,7 @@ public class NetworkClient : MonoBehaviour
             Debug.Log("Connection made to the server !");
         });
 
-        socketManagerRef.Socket.On("register", (socket, packet, args) =>//On("register", (E) =>
+        socketManagerRef.Socket.On("register", (socket, packet, args) =>
         {
             var data = args[0] as Dictionary<string, object>;
             ClientID = data["id"] as string;
@@ -96,13 +92,13 @@ public class NetworkClient : MonoBehaviour
             Debug.Log("Our client's ID : " + ClientID);
         });
 
-        socketManagerRef.Socket.On("spawnPlayer", (socket, packet, args) =>// On("spawn", (E) =>
+        socketManagerRef.Socket.On("spawnPlayer", (socket, packet, args) =>
         {
             //Handling all spawning all players
             var dataPlayer = args[0] as Dictionary<string, object>;
             string id = dataPlayer["id"] as string;
-
-            GameObject go = Instantiate(m_playerMainPrefab);
+            var dataCharacteristic = dataPlayer["characteristic"] as Dictionary<string, object>;
+            GameObject go = Instantiate((GameObject)Resources.Load("PlayersPrefabs/" + dataCharacteristic["name"]));
             go.name = string.Format("Player ({0})", id);
             NetworkIdentity ni = go.GetComponent<NetworkIdentity>();
             var player = ni.GetComponent<PlayerManagerMain>();
@@ -115,40 +111,30 @@ public class NetworkClient : MonoBehaviour
             ni.SetSocketReference(this);
             m_serverObjects.Add(id, ni);
 
+            //Find HUD
+            player.FindHUDManager();
+
+            //Get the caracteristics of xuchu
+            player.SetPlayerStats(dataCharacteristic);
+            player.m_playerStats.SetObservers();
+            player.m_playerStats.ActivateObserversFirstTime();
+
+            //Find given spells
+            var spellsAsList = dataPlayer["spells"] as List<object>;
+            foreach (var obj in spellsAsList)
+            {
+                string spellJson = JsonConvert.SerializeObject(obj as Dictionary<string, object>, Formatting.None);
+                player.SetSpellTree(spellJson);
+            }
+
             //SetPosition
             var dataPos = dataPlayer["positionInWorld"] as Dictionary<string, object>;
             float x = (float)(double)dataPos["x"];
             float z = (float)(double)dataPos["z"];
             player.transform.position = new Vector3(x, player.transform.position.y, z);
-
-            //Find HUD
-            player.FindHUDManager();
-
-            //Get the caracteristics of xuchu
-            var character = args[1] as Dictionary<string, object>;
-            //var temp2 = temp[0] as Dictionary<string, object>;
-            player.SetPlayerStats(character);
-            player.m_playerStats.SetObservers();
-            player.m_playerStats.ActivateObserversFirstTime();
-
-            //Find given spells
-            var spells = args[2] as List<object>;
-            var spellData = new List<Dictionary<string, object>>();
-            foreach (var o in spells)
-            {
-                spellData.Add(o as Dictionary<string, object>);
-            }
-
-            //TODO : make it without creating the dictionnary
-            for (int i = 0; i < spellData.Count; i++)
-            {
-                string spellJson = JsonConvert.SerializeObject(spellData[i], Formatting.None);
-
-                player.SetSpellTree(spellJson);
-            }
         });
 
-        socketManagerRef.Socket.On("spawnEnnemies", (socket, packet, args) =>// On("spawn", (E) =>
+        socketManagerRef.Socket.On("spawnEnnemies", (socket, packet, args) =>
         {
             //Handling spwaning group of ennemies
             var dataGroup = args[0] as Dictionary<string, object>;

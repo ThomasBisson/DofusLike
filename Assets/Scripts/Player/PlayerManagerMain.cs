@@ -13,6 +13,8 @@ public class PlayerManagerMain : PlayerManager
 
     private float m_aggroRange = 1f;
 
+    private Coroutine m_checkEnnemyInRange;
+
     #endregion
 
     #region UNITY_METHODS
@@ -73,8 +75,31 @@ public class PlayerManagerMain : PlayerManager
 
     public void CheckIfEnnemyInRange(string id, Transform position)
     {
+        if(m_checkEnnemyInRange == null)
+            m_checkEnnemyInRange = StartCoroutine(CheckIfEnnemyInRangeEnumerator(id, position));
+        else
+        {
+            StopCoroutine(m_checkEnnemyInRange);
+            m_checkEnnemyInRange = StartCoroutine(CheckIfEnnemyInRangeEnumerator(id, position));
+        }
+
+
         if (Vector3.Distance(position.position, transform.position) <= m_aggroRange)
         {
+            m_animator.SetBool("isRunning", false);
+            m_networkBattle.SendEngageBattleMessage(id);
+        }
+    }
+
+    IEnumerator CheckIfEnnemyInRangeEnumerator(string id, Transform position)
+    {
+        yield return new WaitUntil(() =>
+        {
+            return Vector3.Distance(position.position, transform.position) <= m_aggroRange || m_targetPosition == transform.position;
+        });
+        if (Vector3.Distance(position.position, transform.position) <= m_aggroRange)
+        {
+            m_animator.SetBool("isRunning", false);
             m_networkBattle.SendEngageBattleMessage(id);
         }
     }

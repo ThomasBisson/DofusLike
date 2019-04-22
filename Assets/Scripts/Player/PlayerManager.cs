@@ -27,7 +27,7 @@ public class PlayerManager : Characters
     protected SpellTree m_spellTree;
 
     /******** PlayerStats ********/
-    public PlayerStats m_playerStats { get; private set; }
+    public PlayerStats m_playerStats;
 
     /******** HUD **********/
     public HUDUIManager m_HUDUIManager { get; private set; }
@@ -134,15 +134,14 @@ public class PlayerManager : Characters
 
     #region STATIC
 
-    public static PlayerManagerFight PlayerMainToPlayerFight(PlayerManagerMain main)
+    public static void PlayerMainToPlayerFight(PlayerManagerMain main, ref PlayerManagerFight fight)
     {
-        PlayerManagerFight fight = new PlayerManagerFight();
         fight.SetPlayerStats(main.m_playerStats);
         fight.SetSpellTree(main.m_spellTree);
         fight.m_speed = main.m_speed;
         fight.SetHUDManager(main.m_HUDUIManager);
         fight.m_networkIdentity = main.m_networkIdentity;
-        return fight;
+        fight.SetHUDSpellButtons();
     }
 
     #endregion

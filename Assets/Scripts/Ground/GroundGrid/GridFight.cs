@@ -43,20 +43,23 @@ public class GridFight : GridParent
 
         //Placing the tile on the grid
         GameObject go;
-        for (int x = -(m_totalSizeX / 2); x < (m_totalSizeX / 2); x += 1)
+        float sizeXDivTwo = (float)m_totalSizeX / 2f;
+        float sizeZDivTwo = (float)m_totalSizeZ / 2f;
+        for (float x = -sizeXDivTwo; x < sizeXDivTwo; x += m_size)
         {
-            for (int z = -(m_totalSizeZ / 2); z < (m_totalSizeZ / 2); z += 1)
+            for (float z = -sizeZDivTwo; z < sizeZDivTwo; z += m_size)
             {
                 var point = GetNearestPointOnGrid(new Vector3(x, 0f, z));
                 go = Instantiate(m_groundGridPrefab, point, Quaternion.identity, transform);
+                go.name = "map[" + ((int)(x + sizeXDivTwo)) + ", " + ((int)(z + sizeZDivTwo)) + "]";
                 var pos = go.transform.localPosition;
                 pos.y = 0.01f;
                 go.transform.localPosition = pos;
-                m_map[x + (m_totalSizeX / 2), z + (m_totalSizeZ / 2)] = go.GetComponent<GroundGrid>();
-                m_map[x + (m_totalSizeX / 2), z + (m_totalSizeZ / 2)].XY = new Vector2(x + (m_totalSizeX / 2), z + (m_totalSizeZ / 2));
-                m_map[x + (m_totalSizeX / 2), z + (m_totalSizeZ / 2)].m_OnHover = OnGridHover;
-                m_map[x + (m_totalSizeX / 2), z + (m_totalSizeZ / 2)].m_OnStopHover = OnStopGridHover;
-                m_map[x + (m_totalSizeX / 2), z + (m_totalSizeZ / 2)].m_OnClicked = OnGridClicked;
+                m_map[(int)(x + sizeXDivTwo), (int)(z + sizeZDivTwo)] = go.GetComponent<GroundGrid>();
+                m_map[(int)(x + sizeXDivTwo), (int)(z + sizeZDivTwo)].XY = new Vector2((int)(x + sizeXDivTwo), (int)(z + sizeZDivTwo));
+                m_map[(int)(x + sizeXDivTwo), (int)(z + sizeZDivTwo)].m_OnHover = OnGridHover;
+                m_map[(int)(x + sizeXDivTwo), (int)(z + sizeZDivTwo)].m_OnStopHover = OnStopGridHover;
+                m_map[(int)(x + sizeXDivTwo), (int)(z + sizeZDivTwo)].m_OnClicked = OnGridClicked;
             }
         }
     }
@@ -66,12 +69,21 @@ public class GridFight : GridParent
     #region GRID_TILES_CALLBACKS
     public void OnGridHover(Vector2 XY)
     {
+        if (PlayerManagerFight == null)
+            return;
+
+        if (PlayerManagerFight.m_positionPlayer == XY)
+            return;
+
+        m_map[(int)XY.x, (int)XY.y].AddColor(GroundGrid.PossibleDisplay.Pointed);
+
         m_astar.AstarRun(PlayerManagerFight.m_positionPlayer, XY);
         var path = m_astar.GetPath();
-        if (!PlayerManagerFight.CanMove(path.Count))
-            return;
-        foreach (var tile in path)
-            m_map[tile.X, tile.Y].DisplayYourself(GroundGrid.PossibleDisplay.Movement);
+        if (PlayerManagerFight.CanMove(path.Count))
+        {
+            foreach (var tile in path)
+                m_map[tile.X, tile.Y].AddColor(GroundGrid.PossibleDisplay.Movement);
+        }
     }
 
     public void OnStopGridHover(Vector2 XY)
@@ -96,7 +108,26 @@ public class GridFight : GridParent
 
     #endregion
 
-    #region METHOD
+    #region METHODS
+
+    public override Vector3 GetNearestPointOnGrid(Vector3 position)
+    {
+        position -= transform.position;
+
+        //int xCount = Mathf.RoundToInt(position.x / m_size);
+        //int yCount = Mathf.RoundToInt(position.y / m_size);
+        //int zCount = Mathf.RoundToInt(position.z / m_size);
+
+        Vector3 result = new Vector3(
+            (float)position.x * m_size + m_offsetX,
+            (float)position.y * m_size,
+            (float)position.z * m_size + m_offsetZ);
+
+        result += transform.position;
+
+        return result;
+    }
+
 
     public void ActivateTileInRange(int range)
     {
@@ -108,7 +139,7 @@ public class GridFight : GridParent
                     if ((int)(PlayerManagerFight.m_positionPlayer.x - i) >= 0 && (int)(PlayerManagerFight.m_positionPlayer.x - i) < m_totalSizeX &&
                         (int)(PlayerManagerFight.m_positionPlayer.y + j) >= 0 && (int)(PlayerManagerFight.m_positionPlayer.y + j) < m_totalSizeZ)
                     {
-                        m_map[(int)PlayerManagerFight.m_positionPlayer.x - i, (int)PlayerManagerFight.m_positionPlayer.y + j].DisplayYourself(GroundGrid.PossibleDisplay.Spell);
+                        m_map[(int)PlayerManagerFight.m_positionPlayer.x - i, (int)PlayerManagerFight.m_positionPlayer.y + j].AddColor(GroundGrid.PossibleDisplay.Spell);
                     }
                 }
     }
@@ -158,6 +189,22 @@ public class GridFight : GridParent
 
     #endregion
 
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.yellow;
+        float sizeXDivTwo = (float)m_totalSizeX / 2f;
+        float sizeZDivTwo = (float)m_totalSizeZ / 2f;
+        for (float x = -sizeXDivTwo; x < sizeXDivTwo; x += m_size)
+        {
+            for (float z = -sizeZDivTwo; z < sizeZDivTwo; z += m_size)
+            {
+                var point = GetNearestPointOnGrid(new Vector3(x, 0f, z));
+                Gizmos.DrawSphere(point, 0.1f);
+            }
+
+        }
+    }
 
 
 }

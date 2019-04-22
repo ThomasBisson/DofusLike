@@ -41,7 +41,7 @@ public class GridParent : MonoBehaviour
 
     #region METHODS
 
-    public Vector3 GetNearestPointOnGrid(Vector3 position)
+    public virtual Vector3 GetNearestPointOnGrid(Vector3 position)
     {
         position -= transform.position;
 

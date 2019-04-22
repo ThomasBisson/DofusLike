@@ -25,14 +25,19 @@ public class BattleManager : MonoBehaviour
 
     IEnumerator WaitSceneIsLoaded()
     {
+        //Start a loading screen and wait until the fight scene is loaded
         HUDUIManager.Instance.StartLoadScreen();
         Scene scene = SceneManager.GetSceneByName("Fight");
         yield return new WaitUntil(() => scene.isLoaded);
+
+        //Create and set player fight from player main, also destroy player main
         GameObject player = GameManager.Instance.m_PlayerManagerMain.gameObject;
         var fight = player.AddComponent<PlayerManagerFight>();
-        fight = PlayerManager.PlayerMainToPlayerFight(GameManager.Instance.m_PlayerManagerMain);
+        PlayerManager.PlayerMainToPlayerFight(GameManager.Instance.m_PlayerManagerMain, ref fight);
         GameManager.Instance.m_playerManagerFight = fight;
         DestroyImmediate(player.GetComponent<PlayerManagerMain>());
+
+        //Stop load screen and unload main scene
         HUDUIManager.Instance.StopLoadScreen();
         SceneManager.UnloadSceneAsync("Main");
     }
