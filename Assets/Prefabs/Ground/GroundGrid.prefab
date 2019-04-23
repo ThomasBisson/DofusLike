@@ -834,9 +834,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7835033e7bdf6004d9b8cc477799de9e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_movementColor: {r: 0, g: 0.6226415, b: 0.17789748, a: 1}
-  m_previewSpellColor: {r: 0.745283, g: 0, b: 0, a: 1}
-  m_pointedColor: {r: 0.04301889, g: 0.5377358, b: 0, a: 1}
+  m_movementColor: {r: 0, g: 0.6226415, b: 0.17789748, a: 0.627451}
+  m_previewSpellColor: {r: 0.745283, g: 0, b: 0, a: 0.627451}
+  m_pointedColor: {r: 0.04301889, g: 0.5377358, b: 0, a: 0.627451}
   m_noColor: {r: 0.9528302, g: 0.9528302, b: 0.9528302, a: 0}
 --- !u!1 &1733118962543378514
 GameObject:
@@ -896,7 +896,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.40775186, g: 0.7264151, b: 0.5014855, a: 1}
+  m_Color: {r: 0, g: 0.6226415, b: 0.17789748, a: 0.49019608}
   m_RaycastTarget: 1
   m_OnCullStateChanged:
     m_PersistentCalls:

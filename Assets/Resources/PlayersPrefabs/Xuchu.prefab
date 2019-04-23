@@ -91666,8 +91666,8 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Size: {x: 0.4280851, y: 0.7745751, z: 0.38028002}
-  m_Center: {x: 0.0064548254, y: 0.38302583, z: -0.041959196}
+  m_Size: {x: 0.6004598, y: 0.7745751, z: 0.5081583}
+  m_Center: {x: -0.016474605, y: 0.38302583, z: 0.00041276217}
 --- !u!114 &1241583241
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -91737,6 +91737,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_oldPosition: {x: 0, y: 0, z: 0}
+  m_playerManager: {fileID: 0}
 --- !u!114 &4532980353915170549
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -91750,7 +91751,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_speed: 5
-  m_positionPlayer: {x: 0, y: 0}
+  m_positionArrayMain: {x: 0, y: 0}
+  m_positionArrayFight: {x: 0, y: 0}
   m_animator: {fileID: 0}
   m_playerStats:
     m_name: 
@@ -91771,7 +91773,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 80
+  m_Constraints: 126
   m_CollisionDetection: 0
 --- !u!1 &1263313244
 GameObject:

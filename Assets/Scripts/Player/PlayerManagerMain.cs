@@ -24,12 +24,12 @@ public class PlayerManagerMain : PlayerManager
         base.Awake();
         m_grid = FindObjectOfType<GridMain>();
         DontDestroyOnLoad(this.gameObject);
-
     }
 
     public override void Start()
     {
         base.Start();
+        transform.position = m_grid.GetNearestPointOnGrid(transform.position);
     }
 
     public override void Update()
@@ -42,11 +42,14 @@ public class PlayerManagerMain : PlayerManager
                 RaycastHit hitInfo;
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-                if (Physics.Raycast(ray, out hitInfo))
+                if (Physics.Raycast(ray, out hitInfo, Mathf.Infinity, LayerMask.GetMask("Ground")))
                 {
                     GoNear(hitInfo.point);
                 }
+                    Debug.Log("click : " + hitInfo.point);
+
             }
+            m_positionArrayMain = m_grid.GetArrayPosition(transform.position);
         }
     }
 
@@ -58,9 +61,9 @@ public class PlayerManagerMain : PlayerManager
 
     public void RandomizePlayerPosition(bool mustTeleportPlayer)
     {
-        m_positionPlayer = new Vector2(Random.Range(0, m_grid.m_totalSizeX), Random.Range(0, m_grid.m_totalSizeZ));
+        m_positionArrayMain = new Vector2(Random.Range(0, m_grid.m_totalSizeX), Random.Range(0, m_grid.m_totalSizeZ));
         if (mustTeleportPlayer)
-            transform.position = m_grid.GetNearestPointOnGrid(m_positionPlayer);//m_grid.Map[(int)m_positionPlayer.x, (int)m_positionPlayer.y].transform.position;
+            transform.position = m_grid.GetNearestPointOnGrid(m_positionArrayMain);//m_grid.Map[(int)m_positionPlayer.x, (int)m_positionPlayer.y].transform.position;
     }
 
     public override void GoNear(Vector3 clickPoint)
@@ -95,7 +98,9 @@ public class PlayerManagerMain : PlayerManager
     {
         yield return new WaitUntil(() =>
         {
-            return Vector3.Distance(position.position, transform.position) <= m_aggroRange || m_targetPosition == transform.position;
+            //Debug.Log("dist : " + Vector3.Distance(position.position, transform.position) + " <= " + m_aggroRange);
+            //System.Threading.Thread.Sleep(50);
+            return Vector3.Distance(position.position, transform.position) <= m_aggroRange;
         });
         if (Vector3.Distance(position.position, transform.position) <= m_aggroRange)
         {

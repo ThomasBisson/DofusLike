@@ -13,8 +13,9 @@ public class EnnemyManager : Characters
     protected float m_speed = 5f;
     protected Vector3 m_targetPosition;
     protected bool m_targetPositionChanged = false;
-    [HideInInspector]
-    public Vector2 m_positionEnnemy;
+
+    public Vector2 m_positionArrayFight;
+
     [SerializeField]
     [GreyOut]
     protected Animator m_animator;
@@ -26,17 +27,12 @@ public class EnnemyManager : Characters
     public OnHover m_onHover;
     public OnStopHover m_onStopHover;
     public OnClicked m_onClicked;
-    public EnnemyGroup m_ennemyGroup;
 
     /******** SpellTree ********/
     protected SpellTree m_spellTree;
 
     /******** EnnemyStats ********/
     public EnnemyStats m_ennemyStats { get; private set; }
-
-    /********** PlayerManager **********/
-    [GreyOut]
-    public PlayerManager m_playerManager;
 
     #region UNITY-METHOD
 
@@ -105,9 +101,9 @@ public class EnnemyManager : Characters
     {
         m_ennemyStats = new EnnemyStats(this, 
             (string)stats["name"],
-            System.Convert.ToInt32(stats["baseHealthPoints"]),
-            System.Convert.ToInt32(stats["baseActionPoints"]),
-            System.Convert.ToInt32(stats["baseMovementPoints"]),
+            System.Convert.ToInt32(stats["healthPoints"]),
+            System.Convert.ToInt32(stats["actionPoints"]),
+            System.Convert.ToInt32(stats["movementPoints"]),
             0, 0, 0, 0);
     }
 
@@ -118,15 +114,13 @@ public class EnnemyManager : Characters
 
     #region STATIC
 
-    //public static EnnemyManagerFight EnnemyMainToEnnemyFight(EnnemyManagerMain main)
-    //{
-    //    EnnemyManagerFight fight = new EnnemyManagerFight();
-    //    fight.SetEnnemyStats(main.m_ennemyStats);
-    //    fight.SetSpellTree(main.m_spellTree);
-    //    fight.m_speed = main.m_speed;
-    //    //fight.m_ennemyGroup = main.m_ennemyGroup;
-    //    return fight;
-    //}
+    public static void EnnemyMainToEnnemyFight(EnnemyManagerMain main, ref EnnemyManagerFight fight)
+    {
+        fight.SetEnnemyStats(main.m_ennemyStats);
+        fight.SetSpellTree(main.m_spellTree);
+        fight.m_speed = main.m_speed;
+        fight.m_positionArrayFight = main.m_positionArrayFight;
+    }
 
     #endregion
 

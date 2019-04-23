@@ -7,6 +7,7 @@ public class EnnemyManagerMain : EnnemyManager
 
     #region VARS
 
+    public EnnemyGroupMain m_ennemyGroup;
 
     #endregion
 
@@ -18,7 +19,7 @@ public class EnnemyManagerMain : EnnemyManager
 
     #region METHODS
 
-    
+
 
 
 

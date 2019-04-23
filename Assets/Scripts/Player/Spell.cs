@@ -5,6 +5,7 @@ using UnityEngine;
 [System.Serializable]
 public class Spell
 {
+    public string _id;
     public string name;
     public float actionPointConsuption;
     public float damage;

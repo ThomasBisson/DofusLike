@@ -11,6 +11,8 @@ public class PlayerManagerFight : PlayerManager
     [GreyOut]
     private GridFight m_grid;
 
+    private int m_spellUsedID;
+
     #endregion
 
     #region UNITY_METHODS
@@ -25,7 +27,7 @@ public class PlayerManagerFight : PlayerManager
     {
         base.Start();
         m_grid.PlayerManagerFight = this;
-        RandomizePlayerPosition(true);
+        transform.position = m_grid.Map[(int)m_positionArrayFight.x, (int)m_positionArrayFight.y].transform.position;
     }
 
     // Update is called once per frame
@@ -37,6 +39,8 @@ public class PlayerManagerFight : PlayerManager
     #endregion
 
     #region METHODS
+
+    #region MOVEMENTS
 
     private void HandleMouvement()
     {
@@ -62,24 +66,42 @@ public class PlayerManagerFight : PlayerManager
 
     public void RandomizePlayerPosition(bool mustTeleportPlayer)
     {
-        m_positionPlayer = new Vector2(Random.Range(0, m_grid.Map.GetLength(0)), Random.Range(0, m_grid.Map.GetLength(1)));
+        m_positionArrayFight = new Vector2(Random.Range(0, m_grid.Map.GetLength(0)), Random.Range(0, m_grid.Map.GetLength(1)));
         if (mustTeleportPlayer)
-            transform.position = m_grid.Map[(int)m_positionPlayer.x, (int)m_positionPlayer.y].transform.position;
+            transform.position = m_grid.Map[(int)m_positionArrayFight.x, (int)m_positionArrayFight.y].transform.position;
     }
+
+    //TODO : make him go tile by tile from combat
+    public override void GoNear(Vector3 clickPoint)
+    {
+        base.GoNear(clickPoint);
+        m_targetPosition = clickPoint;
+        m_targetPositionChanged = true;
+        m_animator.SetBool("isRunning", true);
+        transform.LookAt(m_targetPosition);
+    }
+
+    #endregion
+
+
+    #region SPELLS
 
     public void HandleSpellButtonClick(int idSpell)
     {
-        if (m_grid.IsMovementStopped())
+        if (m_grid.GetCurrentAction() == GridFight.Action.Spell)
         {
             m_grid.DeactivateTileInRange((int)m_spellTree.GetSpells()[idSpell].range);
-            m_grid.EnableMovement();
+            m_grid.SetCurrentAction(GridFight.Action.Movement);
+            m_spellUsedID = -1;
         }
         else
         {
             m_grid.ActivateTileInRange((int)m_spellTree.GetSpells()[idSpell].range);
-            m_grid.StopMovement();
+            m_grid.SetCurrentAction(GridFight.Action.Spell);
+            m_spellUsedID = idSpell;
         }
     }
+
     public void SetHUDSpellButtons()
     {
         List<int> ids = new List<int>();
@@ -89,15 +111,29 @@ public class PlayerManagerFight : PlayerManager
         m_HUDUIManager.FillCallbackButtons(HandleSpellButtonClick, ids);
     }
 
-    //TODO : make him go tile by tile from combat
-    public virtual void GoNear(Vector3 clickPoint)
+    public void TryToActivateSpell(Vector2 XY)
     {
-        base.GoNear(clickPoint);
-        m_targetPosition = clickPoint;
-        m_targetPositionChanged = true;
-        m_animator.SetBool("isRunning", true);
-        transform.LookAt(m_targetPosition);
+        if (m_spellUsedID == -1)
+            return;
+
+        int dist = (int)MathsUtils.CircleDistance(XY, m_positionArrayFight);
+        if (dist <= (int)m_spellTree.GetSpells()[m_spellUsedID].range)
+        {
+            //Use spell
+            Debug.Log("Can use spell");
+        }
+        else
+        {
+            //Don't use spell
+            Debug.Log("Can't use spell");
+        }
+        m_grid.DeactivateTileInRange((int)m_spellTree.GetSpells()[m_spellUsedID].range);
+        m_grid.SetCurrentAction(GridFight.Action.Movement);
+        m_spellUsedID = -1;
+
     }
+
+    #endregion
 
     #endregion
 }

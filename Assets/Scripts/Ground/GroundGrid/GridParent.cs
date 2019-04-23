@@ -59,23 +59,28 @@ public class GridParent : MonoBehaviour
         return result;
     }
 
+    public Vector2 GetArrayPosition(Vector3 position)
+    {
+        return new Vector2(Mathf.RoundToInt(position.x / m_size), Mathf.RoundToInt(position.z / m_size));
+    }
+
     #endregion
 
     #region GIZMO
 
-    //private void OnDrawGizmos()
-    //{
-    //    Gizmos.color = Color.yellow;
-    //    for (float x = -(m_totalSizeX/2); x < (m_totalSizeX / 2); x += m_size)
-    //    {
-    //        for (float z = -((m_totalSizeZ / 2)); z < (m_totalSizeZ / 2); z += m_size)
-    //        {
-    //            var point = GetNearestPointOnGrid(new Vector3(x, 0f, z));
-    //            Gizmos.DrawSphere(point, 0.1f);
-    //        }
+    public virtual void OnDrawGizmos()
+    {
+        Gizmos.color = Color.yellow;
+        for (float x = -(m_totalSizeX / 2); x < (m_totalSizeX / 2); x += m_size)
+        {
+            for (float z = -((m_totalSizeZ / 2)); z < (m_totalSizeZ / 2); z += m_size)
+            {
+                var point = GetNearestPointOnGrid(new Vector3(x, 0f, z));
+                Gizmos.DrawSphere(point, 0.1f);
+            }
 
-    //    }
-    //}
+        }
+    }
 
     #endregion
 

@@ -13,7 +13,14 @@ public class GridFight : GridParent
     [Header("Groundgrids prefabs")]
     [SerializeField]
     private GameObject m_groundGridPrefab;
-    private bool m_isMovementStoped = false;
+
+    private Action m_action = Action.Movement;
+    public enum Action
+    {
+        Movement,
+        Spell
+    }
+
     private GroundGrid[,] m_map;
 
     public GroundGrid[,] Map
@@ -72,38 +79,51 @@ public class GridFight : GridParent
         if (PlayerManagerFight == null)
             return;
 
-        if (PlayerManagerFight.m_positionPlayer == XY)
+        if (PlayerManagerFight.m_positionArrayFight == XY)
             return;
 
         m_map[(int)XY.x, (int)XY.y].AddColor(GroundGrid.PossibleDisplay.Pointed);
 
-        m_astar.AstarRun(PlayerManagerFight.m_positionPlayer, XY);
-        var path = m_astar.GetPath();
-        if (PlayerManagerFight.CanMove(path.Count))
+        if (m_action == Action.Movement)
         {
-            foreach (var tile in path)
-                m_map[tile.X, tile.Y].AddColor(GroundGrid.PossibleDisplay.Movement);
+            m_astar.AstarRun(PlayerManagerFight.m_positionArrayFight, XY);
+            var path = m_astar.GetPath();
+            if (PlayerManagerFight.CanMove(path.Count))
+            {
+                foreach (var tile in path)
+                    m_map[tile.X, tile.Y].AddColor(GroundGrid.PossibleDisplay.Movement);
+            }
         }
     }
 
     public void OnStopGridHover(Vector2 XY)
     {
-        var path = m_astar.GetPath();
-        foreach (var tile in path)
-            m_map[tile.X, tile.Y].HideYourself();
+        m_map[(int)XY.x, (int)XY.y].RemoveColor(GroundGrid.PossibleDisplay.Pointed);
 
-        m_astar.ResetMapAndPath();
+        if (m_action == Action.Movement)
+        {
+            var path = m_astar.GetPath();
+            foreach (var tile in path)
+                m_map[tile.X, tile.Y].HideYourself();
+
+            m_astar.ResetMapAndPath();
+        }
     }
 
     public void OnGridClicked(Vector2 XY)
     {
-        int dist = (int)MathsUtils.CircleDistance(XY, PlayerManagerFight.m_positionPlayer);
-        if (!PlayerManagerFight.CanMove(dist))
-            return;
-
-        PlayerManagerFight.GoNear(m_map[(int)XY.x, (int)XY.y].transform.position);
-        OnStopGridHover(XY);
-        PlayerManagerFight.m_positionPlayer = XY;
+        if (m_action == Action.Movement)
+        {
+            int dist = (int)MathsUtils.CircleDistance(XY, PlayerManagerFight.m_positionArrayFight);
+            if (!PlayerManagerFight.CanMove(dist))
+                return;
+            PlayerManagerFight.GoNear(m_map[(int)XY.x, (int)XY.y].transform.position);
+            OnStopGridHover(XY);
+            PlayerManagerFight.m_positionArrayFight = XY;
+        } else if(m_action == Action.Spell)
+        {
+            PlayerManagerFight.TryToActivateSpell(XY);
+        }
     }
 
     #endregion
@@ -136,10 +156,10 @@ public class GridFight : GridParent
             for (int j = -range; j < range + 1; j++)
                 if (Math.Abs(i) + Math.Abs(j) <= range)
                 {
-                    if ((int)(PlayerManagerFight.m_positionPlayer.x - i) >= 0 && (int)(PlayerManagerFight.m_positionPlayer.x - i) < m_totalSizeX &&
-                        (int)(PlayerManagerFight.m_positionPlayer.y + j) >= 0 && (int)(PlayerManagerFight.m_positionPlayer.y + j) < m_totalSizeZ)
+                    if ((int)(PlayerManagerFight.m_positionArrayFight.x - i) >= 0 && (int)(PlayerManagerFight.m_positionArrayFight.x - i) < m_totalSizeX &&
+                        (int)(PlayerManagerFight.m_positionArrayFight.y + j) >= 0 && (int)(PlayerManagerFight.m_positionArrayFight.y + j) < m_totalSizeZ)
                     {
-                        m_map[(int)PlayerManagerFight.m_positionPlayer.x - i, (int)PlayerManagerFight.m_positionPlayer.y + j].AddColor(GroundGrid.PossibleDisplay.Spell);
+                        m_map[(int)PlayerManagerFight.m_positionArrayFight.x - i, (int)PlayerManagerFight.m_positionArrayFight.y + j].AddColor(GroundGrid.PossibleDisplay.Spell);
                     }
                 }
     }
@@ -151,46 +171,27 @@ public class GridFight : GridParent
             for (int j = -range; j < range + 1; j++)
                 if (Math.Abs(i) + Math.Abs(j) <= range)
                 {
-                    if ((int)(PlayerManagerFight.m_positionPlayer.x - i) >= 0 && (int)(PlayerManagerFight.m_positionPlayer.x - i) < m_totalSizeX &&
-                        (int)(PlayerManagerFight.m_positionPlayer.y + j) >= 0 && (int)(PlayerManagerFight.m_positionPlayer.y + j) < m_totalSizeZ)
+                    if ((int)(PlayerManagerFight.m_positionArrayFight.x - i) >= 0 && (int)(PlayerManagerFight.m_positionArrayFight.x - i) < m_totalSizeX &&
+                        (int)(PlayerManagerFight.m_positionArrayFight.y + j) >= 0 && (int)(PlayerManagerFight.m_positionArrayFight.y + j) < m_totalSizeZ)
                     {
-                        m_map[(int)PlayerManagerFight.m_positionPlayer.x - i, (int)PlayerManagerFight.m_positionPlayer.y + j].HideYourself();
+                        m_map[(int)PlayerManagerFight.m_positionArrayFight.x - i, (int)PlayerManagerFight.m_positionArrayFight.y + j].HideYourself();
                     }
                 }
     }
 
-    public void EnableMovement()
-    {
-        m_isMovementStoped = false;
-        foreach (var tile in m_map)
-        {
-            tile.m_OnHover = OnGridHover;
-            tile.m_OnStopHover = OnStopGridHover;
-            tile.m_OnClicked = OnGridClicked;
-        }
-    }
 
-    public void StopMovement()
-    {
-        m_isMovementStoped = true;
-        foreach (var tile in m_map)
-        {
-            tile.m_OnHover = null;
-            tile.m_OnStopHover = null;
-            tile.m_OnClicked = null;
-        }
-    }
 
     #region GETTER & SETTER
 
-    public bool IsMovementStopped() { return m_isMovementStoped; }
+    public void SetCurrentAction(Action action) { m_action = action; }
+    public Action GetCurrentAction() { return m_action; }
 
     #endregion
 
     #endregion
 
 
-    private void OnDrawGizmos()
+    public override void OnDrawGizmos()
     {
         Gizmos.color = Color.yellow;
         float sizeXDivTwo = (float)m_totalSizeX / 2f;

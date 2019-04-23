@@ -16,8 +16,8 @@ public class PlayerManager : Characters
     protected Vector3 m_targetPosition;
     protected bool m_targetPositionChanged = false;
 
-    [HideInInspector]
-    public Vector2 m_positionPlayer;
+    public Vector2 m_positionArrayMain;
+    public Vector2 m_positionArrayFight;
 
     [SerializeField]
     [GreyOut]
@@ -43,6 +43,7 @@ public class PlayerManager : Characters
     {
         m_animator = GetComponent<Animator>();
         m_networkIdentity = GetComponent<NetworkIdentity>();
+        GetComponent<NetworkTransform>().m_playerManager = this;
     }
 
     // Start is called before the first frame update
@@ -112,7 +113,7 @@ public class PlayerManager : Characters
         m_networkBattle = GetComponent<NetworkBattle>();
     }
 
-    //TODO : See if it'snot better to serialize stats
+    //TODO : See if it's not better to serialize stats
     public void SetPlayerStats(Dictionary<string, object> stats)
     {
         m_playerStats = new PlayerStats(this, this.name,
@@ -142,6 +143,8 @@ public class PlayerManager : Characters
         fight.SetHUDManager(main.m_HUDUIManager);
         fight.m_networkIdentity = main.m_networkIdentity;
         fight.SetHUDSpellButtons();
+        fight.m_positionArrayFight = main.m_positionArrayFight;
+        fight.m_positionArrayMain = main.m_positionArrayMain;
     }
 
     #endregion

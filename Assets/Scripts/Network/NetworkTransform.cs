@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using SerializableClass;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -11,6 +12,8 @@ public class NetworkTransform : MonoBehaviour
     private Vector3 m_oldPosition;
 
     private NetworkIdentity m_networkIdentity;
+
+    public PlayerManager m_playerManager;
     private Player m_player;
 
     private float stillCounter = 0;
@@ -53,10 +56,19 @@ public class NetworkTransform : MonoBehaviour
 
     private void SendData()
     {
-        //Update player information
+        if (m_playerManager == null)
+            return;
+
+        //Update player world position
         m_player.positionInWorld.x = Mathf.Round(transform.position.x * 1000.0f) / 1000.0f;
         m_player.positionInWorld.y = Mathf.Round(transform.position.y * 1000.0f) / 1000.0f;
         m_player.positionInWorld.z = Mathf.Round(transform.position.z * 1000.0f) / 1000.0f;
+
+        //Update player main position
+        m_player.positionArrayMain.Set(m_playerManager.m_positionArrayMain);
+
+        //Update player fight position
+        m_player.positionArrayFight.Set(m_playerManager.m_positionArrayFight);
 
         var jsonObject = JsonConvert.SerializeObject(m_player);
 

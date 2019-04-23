@@ -67,19 +67,13 @@ public class GroundGrid : MonoBehaviour
             m_OnClicked(XY);
     }
 
-    //public void DisplayYourself(PossibleDisplay display, PossibleDisplay mix = PossibleDisplay.none)
-    //{
-    //    m_colorNeeded = m_colors[display];
-    //    if (mix != PossibleDisplay.none)
-    //        m_image.color = CombineColors(m_colors[display], m_colors[mix]);
-    //    else
-    //        m_image.color = m_colors[display];
-    //}
-
     public void AddColor(PossibleDisplay display)
     {
-        m_colorsNeeded.Add(m_colors[display]);
-        m_image.color = CombineColors(m_colorsNeeded);
+        if (!m_colorsNeeded.Contains(m_colors[display]))
+        {
+            m_colorsNeeded.Add(m_colors[display]);
+            m_image.color = CombineColors(m_colorsNeeded);
+        }
     }
 
     public void RemoveColor(PossibleDisplay display)

@@ -77,6 +77,16 @@ public class NetworkClient : MonoBehaviour
         socketManagerRef.Open();
     }
 
+    public bool ModifyNetworkIdentityOfNetworkObject(string id, NetworkIdentity ni) {
+        if(m_serverObjects.ContainsKey(id))
+        {
+            m_serverObjects.Remove(id);
+            m_serverObjects.Add(id, ni);
+            return true;
+        }
+        return false;
+    }
+
     public void SetupEvents()
     {
         socketManagerRef.Socket.On("open", (socket, packet, args) =>
@@ -94,11 +104,14 @@ public class NetworkClient : MonoBehaviour
 
         socketManagerRef.Socket.On("spawnPlayer", (socket, packet, args) =>
         {
+            Debug.Log("Player : \n" + packet);
+
             //Handling all spawning all players
             var dataPlayer = args[0] as Dictionary<string, object>;
             string id = dataPlayer["id"] as string;
             var dataCharacteristic = dataPlayer["characteristic"] as Dictionary<string, object>;
-            GameObject go = Instantiate((GameObject)Resources.Load("PlayersPrefabs/" + dataCharacteristic["name"]));
+            Debug.Log(dataCharacteristic == null);
+            GameObject go = Instantiate((GameObject)Resources.Load("PlayersPrefabs/" + dataCharacteristic["name"] as string));
             go.name = string.Format("Player ({0})", id);
             NetworkIdentity ni = go.GetComponent<NetworkIdentity>();
             var player = ni.GetComponent<PlayerManagerMain>();
@@ -120,7 +133,7 @@ public class NetworkClient : MonoBehaviour
             player.m_playerStats.ActivateObserversFirstTime();
 
             //Find given spells
-            var spellsAsList = dataPlayer["spells"] as List<object>;
+            var spellsAsList = dataCharacteristic["myspells"] as List<object>;
             foreach (var obj in spellsAsList)
             {
                 string spellJson = JsonConvert.SerializeObject(obj as Dictionary<string, object>, Formatting.None);
@@ -132,10 +145,22 @@ public class NetworkClient : MonoBehaviour
             float x = (float)(double)dataPos["x"];
             float z = (float)(double)dataPos["z"];
             player.transform.position = new Vector3(x, player.transform.position.y, z);
+
+            var dataPosMain = dataPlayer["positionArrayMain"] as Dictionary<string, object>;
+            float xMain = (float)(double)dataPosMain["x"];
+            float yMain = (float)(double)dataPosMain["y"];
+            player.m_positionArrayMain = new Vector2(xMain, yMain);
+
+            var dataPosFight = dataPlayer["positionArrayFight"] as Dictionary<string, object>;
+            float xFight = (float)(double)dataPosFight["x"];
+            float yFight = (float)(double)dataPosFight["y"];
+            player.m_positionArrayFight = new Vector2(xFight, yFight);
         });
 
         socketManagerRef.Socket.On("spawnEnnemies", (socket, packet, args) =>
         {
+            Debug.Log("Ennemy : \n" + packet);
+
             //Handling spwaning group of ennemies
             var dataGroup = args[0] as Dictionary<string, object>;
             var dataEnnemiesAsList = dataGroup["monsters"] as List<object>;
@@ -148,22 +173,35 @@ public class NetworkClient : MonoBehaviour
             GameObject go = Instantiate((GameObject)Resources.Load("EnnemiesPrefabs/" + dataEnnemies[0]["name"], typeof(GameObject)), m_networkContainer);
 
             //Name and set network vars
-            go.name = string.Format("Ennemy ({0})", id);
+            go.name = string.Format("Ennemies ({0})", id);
             NetworkIdentity ni = go.GetComponent<NetworkIdentity>();
             ni.SetControllerID(id);
             ni.SetSocketReference(this);
             m_serverObjects.Add(id, ni);
 
             //Create EnnemyGroup
-            EnnemyGroup ennemyGroup = go.AddComponent<EnnemyGroup>();
+            GameObject goEnnemy;
+            //DestroyImmediate(go.GetComponent<NetworkTransform>());
+            EnnemyGroupMain ennemyGroup = go.AddComponent<EnnemyGroupMain>();
             ennemyGroup.m_HUDUIManager = HUDUIManager.Instance;
             EnnemyManagerMain ennemy;
             List<object> spellsAsList;
             for (int i=0; i<dataEnnemies.Count; i++)
             {
-                ennemy = new EnnemyManagerMain();
-                ennemy.SetEnnemyStats(dataEnnemies[i]["characteristic"] as Dictionary<string, object>);
-                spellsAsList = dataEnnemies[i]["spells"] as List<object>;
+                goEnnemy = Instantiate((GameObject)Resources.Load("EnnemiesPrefabs/" + dataEnnemies[i]["name"], typeof(GameObject)), go.transform);
+                goEnnemy.name = dataEnnemies[i]["name"] + " " + dataEnnemies[i]["id"];
+                ennemy = goEnnemy.AddComponent<EnnemyManagerMain>();
+
+                //NetworkIdentity, NetworkTransform
+                NetworkIdentity niEnnemy = ennemy.GetComponent<NetworkIdentity>();
+                niEnnemy.SetControllerID(dataEnnemies[i]["id"] as string);
+                niEnnemy.SetSocketReference(this);
+                m_serverObjects.Add(dataEnnemies[i]["id"] as string, niEnnemy);
+                //DestroyImmediate(ennemy.GetComponent<NetworkTransform>());
+
+                //Stats, Spell, Group, Characteristic
+                ennemy.SetEnnemyStats(dataEnnemies[i]);
+                spellsAsList = dataEnnemies[i]["myspells"] as List<object>;
                 foreach(var obj in spellsAsList)
                 {
                     string spellJson = JsonConvert.SerializeObject(obj as Dictionary<string, object>, Formatting.None);
@@ -172,18 +210,29 @@ public class NetworkClient : MonoBehaviour
                 ennemyGroup.AddToEnnemyGroup(ennemy);
                 ennemy.m_ennemyStats.SetObservers();
                 ennemy.m_ennemyStats.ActivateObserversFirstTime();
+                goEnnemy.SetActive(false);
+
+                //Position
+                var dataPosFight = dataEnnemies[i]["position"] as Dictionary<string, object>;
+                float xEnnemy = (float)(double)dataPosFight["x"];
+                float yEnnemy = (float)(double)dataPosFight["y"];
+                ennemy.m_positionArrayFight = new Vector2(xEnnemy, yEnnemy);
             }
 
             //Position
             var dataPos = dataGroup["position"] as Dictionary<string, object>;
             float x = (float)(double)dataPos["x"];
             float z = (float)(double)dataPos["z"];
-            go.transform.position = new Vector3(x, go.transform.position.y, z);
+            //go.transform.position = new Vector3(x, go.transform.position.y, z);
+            ennemyGroup.m_position = new Vector2(x, z);
         });
 
         socketManagerRef.Socket.On("EngageBattle", (socket, packet, args) => {
             Debug.Log("Engage Battle");
-            BattleManager.Instance.SwitchToFightScene();
+            var data = args[0] as Dictionary<string, object>;
+            string id = data["id"] as string;
+
+            BattleManager.Instance.SwitchToFightScene(m_serverObjects[id]);
         });
 
         socketManagerRef.Socket.On("deleteEnnemyGroup", (socket, packet, args) =>
@@ -223,49 +272,6 @@ public class NetworkClient : MonoBehaviour
             //ni.GetComponent<PlayerManager>().GoNear(new Vector3((float)x, (float)y, (float)z));
             ni.transform.position = new Vector3((float)x, (float)y, (float)z);
         });
-    }
-
-}
-
-[System.Serializable]
-public class Player {
-    public string username;
-    public string id;
-    public Position positionInWorld;
-    public Position positionMain;
-    public Position positionFight;
-
-    public Player()
-    {
-        positionInWorld = new Position();
-        positionMain = new Position();
-        positionFight = new Position();
-    }
-
-    public override string ToString()
-    {
-        return String.Format("{ Username: {0}, ID: {1}, Position: {2} }", username, id, positionMain.ToString());
-    }
-    
-}
-
-[System.Serializable]
-public class Position
-{
-    public float x;
-    public float y;
-    public float z;
-
-    public Position()
-    {
-        x = 0;
-        y = 0;
-        z = 0;
-    }
-
-    public override string ToString()
-    {
-        return String.Format("{ {0};{1} }", x, y);
     }
 
 }

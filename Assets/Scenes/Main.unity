@@ -119,7 +119,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh52866
+  m_Name: pb_Mesh10398
   serializedVersion: 9
   m_SubMeshes:
   - serializedVersion: 2
@@ -441,7 +441,7 @@ GameObject:
   - component: {fileID: 1366827000}
   - component: {fileID: 1366826999}
   - component: {fileID: 1366827005}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Ground
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -753,8 +753,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_size: 1
-  m_offsetX: 0.5
-  m_offsetZ: 0.5
+  m_offsetX: 0.4999999
+  m_offsetZ: 0.4999999
   m_totalSizeX: 50
   m_totalSizeZ: 50
 --- !u!1 &1378704820
@@ -787,9 +787,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_networkContainer: {fileID: 1657278410}
-  m_playerMainPrefab: {fileID: 1241583239, guid: 2f26ada2f7fed19459841289377e6b11,
-    type: 3}
-  m_ennemyPrefab: {fileID: 1241583239, guid: ee36d03c04ea13f4e91542bca110b5fc, type: 3}
 --- !u!4 &1378704822
 Transform:
   m_ObjectHideFlags: 0

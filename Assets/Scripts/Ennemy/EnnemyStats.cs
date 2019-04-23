@@ -32,20 +32,20 @@ public class EnnemyStats : Stats
     {
         base.TakeDamage(damage);
 
-        m_ennemyManager.m_ennemyGroup.m_HUDUIManager.RefreshHealthSlider();
+        //m_ennemyManager.m_ennemyGroup.m_HUDUIManager.RefreshHealthSlider();
     }
 
     public override bool UseActionPoint(int actionPointsUsed)
     {
         bool couldUseActionPoint = base.UseActionPoint(actionPointsUsed);
-        m_ennemyManager.m_ennemyGroup.m_HUDUIManager.RefreshActionPointsSlider();
+        //m_ennemyManager.m_ennemyGroup.m_HUDUIManager.RefreshActionPointsSlider();
         return couldUseActionPoint;
     }
 
     public override bool UseMovementPoint(int movementPointsUsed)
     {
         bool couldUseMovementPoint = base.UseMovementPoint(movementPointsUsed);
-        m_ennemyManager.m_ennemyGroup.m_HUDUIManager.RefreshMovementPointsSlider();
+        //m_ennemyManager.m_ennemyGroup.m_HUDUIManager.RefreshMovementPointsSlider();
         return couldUseMovementPoint;
     }
 
@@ -72,20 +72,20 @@ public class EnnemyStats : Stats
     public void SetObservers()
     {
         //SET HUD SLIDERS
-        m_ennemyManager.m_ennemyGroup.m_HUDUIManager.SetHealthObserver(delegate
-        {
-            return m_currentHealth;
-        });
+        //m_ennemyManager.m_ennemyGroup.m_HUDUIManager.SetHealthObserver(delegate
+        //{
+        //    return m_currentHealth;
+        //});
 
-        m_ennemyManager.m_ennemyGroup.m_HUDUIManager.SetActionPointsObserver(delegate
-        {
-            return m_currentActionPoint;
-        });
+        //m_ennemyManager.m_ennemyGroup.m_HUDUIManager.SetActionPointsObserver(delegate
+        //{
+        //    return m_currentActionPoint;
+        //});
 
-        m_ennemyManager.m_ennemyGroup.m_HUDUIManager.SetMovementPointsObserver(delegate
-        {
-            return m_currentMovementPoint;
-        });
+        //m_ennemyManager.m_ennemyGroup.m_HUDUIManager.SetMovementPointsObserver(delegate
+        //{
+        //    return m_currentMovementPoint;
+        //});
     }
 
     public void ActivateObserversFirstTime()
