@@ -21,14 +21,7 @@ public class HUDUIManager : MonoBehaviour
     private TextUpdate m_movementPointsTextChatacter;
 
     [SerializeField]
-    private List<SpellButton> m_spellbuttons;
-
-    [SerializeField]
-    private TextUpdate m_healthTextMonster;
-    [SerializeField]
-    private TextUpdate m_actionPointsTextMonster;
-    [SerializeField]
-    private TextUpdate m_movementPointsTextMonster;
+    private SwitchableManager m_switchableManager;
 
     [SerializeField]
     private Image m_blackScreen;
@@ -77,53 +70,22 @@ public class HUDUIManager : MonoBehaviour
         m_movementPointsTextChatacter.UpdateMyValue();
     }
 
-    public void FillCallbackButtons(SpellButton.OnClick method, List<int> ids)
-    {
-        int max;
-        if (ids.Count > m_spellbuttons.Count)
-            max = ids.Count;
-        else
-            max = m_spellbuttons.Count;
-
-        for (int i = 0; i < max; i++)
-            m_spellbuttons[i].SetOnClick(method, ids[i]);
-    }
-
     #endregion
 
-    #region MONSTER
-
-    public void SetHealthObserverMonster(HUDObserverValueGetter observer)
+    public void FillCallbacksSpellButtons(SpellButton.OnClick method, List<int> ids)
     {
-        m_healthTextMonster.m_observer = observer;
+        m_switchableManager.FillCallbacksSpellButtons(method, ids);
     }
 
-    public void RefreshHealthSliderMonster()
+    public void SwitchToFight()
     {
-        m_healthTextMonster.UpdateMyValue();
+        m_switchableManager.SwitchToFight();
     }
 
-    public void SetActionPointsObserverMonster(HUDObserverValueGetter observer)
+    public void SwitchToMain()
     {
-        m_actionPointsTextMonster.m_observer = observer;
+        m_switchableManager.SwitchToMain();
     }
-
-    public void RefreshActionPointsSliderMonster()
-    {
-        m_actionPointsTextMonster.UpdateMyValue();
-    }
-
-    public void SetMovementPointsObserverMonster(HUDObserverValueGetter observer)
-    {
-        m_movementPointsTextMonster.m_observer = observer;
-    }
-
-    public void RefreshMovementPointsSliderMonster()
-    {
-        m_movementPointsTextMonster.UpdateMyValue();
-    }
-
-    #endregion
 
     public void StartLoadScreen() { m_blackScreen.gameObject.SetActive(true); }
     public void StopLoadScreen() { m_blackScreen.gameObject.SetActive(false); }

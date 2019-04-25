@@ -7,6 +7,8 @@ public class BattleManager : MonoBehaviour
 {
     public static BattleManager Instance;
 
+    private HUDUIManager m_HUDManager;
+
     private void Awake()
     {
         Instance = this;
@@ -15,6 +17,7 @@ public class BattleManager : MonoBehaviour
 
     void Start()
     {
+        m_HUDManager = HUDUIManager.Instance;
     }
 
     public void SwitchToFightScene(NetworkIdentity groupNI)
@@ -29,7 +32,7 @@ public class BattleManager : MonoBehaviour
         var groupMain = groupNI.GetComponent<EnnemyGroupMain>();
 
         //Start a loading screen and wait until the fight scene is loaded
-        HUDUIManager.Instance.StartLoadScreen();
+        m_HUDManager.StartLoadScreen();
         Scene scene = SceneManager.GetSceneByName("Fight");
         yield return new WaitUntil(() => scene.isLoaded);
 
@@ -42,6 +45,7 @@ public class BattleManager : MonoBehaviour
         GameManager.Instance.m_playerManagerFight = fight;
         DestroyImmediate(player.GetComponent<PlayerManagerMain>());
         player.GetComponent<NetworkTransform>().m_playerManager = fight;
+        fight.FindNetworkBattle();
 
 
         //Set ennemies
@@ -76,8 +80,12 @@ public class BattleManager : MonoBehaviour
         }
 
 
+        //Activate HUD for battle
+        m_HUDManager.SwitchToFight();
+
+
         //Stop load screen and unload main scene
-        HUDUIManager.Instance.StopLoadScreen();
+        m_HUDManager.StopLoadScreen();
         SceneManager.UnloadSceneAsync("Main");
     }
 

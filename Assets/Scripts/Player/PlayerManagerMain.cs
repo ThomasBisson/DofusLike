@@ -46,8 +46,6 @@ public class PlayerManagerMain : PlayerManager
                 {
                     GoNear(hitInfo.point);
                 }
-                    Debug.Log("click : " + hitInfo.point);
-
             }
             m_positionArrayMain = m_grid.GetArrayPosition(transform.position);
         }
@@ -87,26 +85,27 @@ public class PlayerManagerMain : PlayerManager
         }
 
 
-        if (Vector3.Distance(position.position, transform.position) <= m_aggroRange)
-        {
-            m_animator.SetBool("isRunning", false);
-            m_networkBattle.SendEngageBattleMessage(id);
-        }
+        //if (Vector3.Distance(position.position, transform.position) <= m_aggroRange)
+        //{
+        //    m_animator.SetBool("isRunning", false);
+        //    m_networkBattle.SendEngageBattleMessage(id);
+        //}
     }
 
     IEnumerator CheckIfEnnemyInRangeEnumerator(string id, Transform position)
     {
         yield return new WaitUntil(() =>
         {
-            //Debug.Log("dist : " + Vector3.Distance(position.position, transform.position) + " <= " + m_aggroRange);
+            Debug.Log("dist : " + Vector3.Distance(position.position, transform.position) + " <= " + m_aggroRange);
             //System.Threading.Thread.Sleep(50);
             return Vector3.Distance(position.position, transform.position) <= m_aggroRange;
         });
-        if (Vector3.Distance(position.position, transform.position) <= m_aggroRange)
-        {
-            m_animator.SetBool("isRunning", false);
+        Debug.Log("On est passé");
+        //if (Vector3.Distance(position.position, transform.position) <= m_aggroRange)
+        //{
+        m_animator.SetBool("isRunning", false);
             m_networkBattle.SendEngageBattleMessage(id);
-        }
+        //}
     }
 
     #endregion

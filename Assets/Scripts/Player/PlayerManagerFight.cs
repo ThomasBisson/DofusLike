@@ -108,7 +108,7 @@ public class PlayerManagerFight : PlayerManager
         for (int i = 0; i < m_spellTree.GetSpells().Count; i++)
             ids.Add(i);
 
-        m_HUDUIManager.FillCallbackButtons(HandleSpellButtonClick, ids);
+        m_HUDUIManager.FillCallbacksSpellButtons(HandleSpellButtonClick, ids);
     }
 
     public void TryToActivateSpell(Vector2 XY)
@@ -121,6 +121,7 @@ public class PlayerManagerFight : PlayerManager
         {
             //Use spell
             Debug.Log("Can use spell");
+            m_networkBattle.SendSpellHitMessage(XY, m_spellTree.GetSpells()[m_spellUsedID]._id);
         }
         else
         {

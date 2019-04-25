@@ -107,6 +107,13 @@ public class EnnemyManager : Characters
             0, 0, 0, 0);
     }
 
+    public void UpdateEnnemyStats(Dictionary<string, object> stats)
+    {
+        m_ennemyStats.TakeDamage(m_ennemyStats.CurrentHealth - System.Convert.ToInt32(stats["currentHealthPoints"]));
+        m_ennemyStats.UseActionPoint(m_ennemyStats.ActionPoint - System.Convert.ToInt32(stats["currentActionPoints"]));
+        m_ennemyStats.UseMovementPoint(m_ennemyStats.MovementPoint - System.Convert.ToInt32(stats["currentMovementPoints"]));
+    }
+
     public void SetEnnemyStats(EnnemyStats stats) { m_ennemyStats = stats; }
 
     #endregion

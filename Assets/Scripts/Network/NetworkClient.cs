@@ -89,6 +89,8 @@ public class NetworkClient : MonoBehaviour
 
     public void SetupEvents()
     {
+        #region CONNECTION_DECONNECTION
+
         socketManagerRef.Socket.On("open", (socket, packet, args) =>
         {
             Debug.Log("Connection made to the server !");
@@ -101,6 +103,19 @@ public class NetworkClient : MonoBehaviour
 
             Debug.Log("Our client's ID : " + ClientID);
         });
+
+        socketManagerRef.Socket.On("playerDisconnect", (socket, packet, args) =>
+        {
+            var data = args[0] as Dictionary<string, object>;
+            string id = data["id"] as string;
+
+            Destroy(m_serverObjects[id].gameObject);
+            m_serverObjects.Remove(id);
+        });
+
+        #endregion
+
+        #region SPAWN_DELETE
 
         socketManagerRef.Socket.On("spawnPlayer", (socket, packet, args) =>
         {
@@ -227,14 +242,6 @@ public class NetworkClient : MonoBehaviour
             ennemyGroup.m_position = new Vector2(x, z);
         });
 
-        socketManagerRef.Socket.On("EngageBattle", (socket, packet, args) => {
-            Debug.Log("Engage Battle");
-            var data = args[0] as Dictionary<string, object>;
-            string id = data["id"] as string;
-
-            BattleManager.Instance.SwitchToFightScene(m_serverObjects[id]);
-        });
-
         socketManagerRef.Socket.On("deleteEnnemyGroup", (socket, packet, args) =>
         {
             var data = args[0] as Dictionary<string, object>;
@@ -244,14 +251,9 @@ public class NetworkClient : MonoBehaviour
             DestroyImmediate(tempObject.gameObject);
         });
 
-        socketManagerRef.Socket.On("playerDisconnect", (socket, packet, args) =>
-        {
-            var data = args[0] as Dictionary<string, object>;
-            string id = data["id"] as string;
+        #endregion
 
-            Destroy(m_serverObjects[id].gameObject);
-            m_serverObjects.Remove(id);
-        });
+        #region UPDATE
 
         socketManagerRef.Socket.On("updatePosition", (socket, packet, args) =>
         {
@@ -272,6 +274,26 @@ public class NetworkClient : MonoBehaviour
             //ni.GetComponent<PlayerManager>().GoNear(new Vector3((float)x, (float)y, (float)z));
             ni.transform.position = new Vector3((float)x, (float)y, (float)z);
         });
+
+        #endregion
+
+        #region BATTLE
+
+        socketManagerRef.Socket.On("EngageBattle", (socket, packet, args) => {
+            Debug.Log("Engage Battle");
+            var data = args[0] as Dictionary<string, object>;
+            string id = data["id"] as string;
+
+            BattleManager.Instance.SwitchToFightScene(m_serverObjects[id]);
+        });
+
+        socketManagerRef.Socket.On("UpdateMonsters", (socket, packet, args) => {
+            var data = args[0] as Dictionary<string, object>;
+            var ennemy = m_serverObjects[data["id"] as string].GetComponent<EnnemyManagerFight>();
+            ennemy.UpdateEnnemyStats(data);
+        });
+
+        #endregion
     }
 
 }

@@ -66,8 +66,6 @@ public class EnnemyGroupMain : EnnemyGroup
 
     private void OnMouseDown()
     {
-        Debug.Log("Click");
-
         HideInfoMonster();
         if (m_onClicked != null)
             m_onClicked(m_networkIdentity.GetID(), transform);

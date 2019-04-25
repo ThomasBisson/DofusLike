@@ -13,6 +13,14 @@ public class EnnemyManagerFight : EnnemyManager
 
     public EnnemyGroupFight m_ennemyGroup;
 
+
+    public delegate void OnHover();
+    public delegate void OnStopHover();
+    public delegate void OnClicked(string id, Transform position);
+    public OnHover m_onHover;
+    public OnStopHover m_onStopHover;
+    public OnClicked m_onClicked;
+
     /********* IA *********/
     public Agent m_agent { get; set; }
 
@@ -38,11 +46,42 @@ public class EnnemyManagerFight : EnnemyManager
         base.Update();
     }
 
+    void OnMouseOver()
+    {
+        if (m_onHover != null)
+            m_onHover();
+    }
+
+    void OnMouseExit()
+    {
+        if (m_onStopHover != null)
+            m_onStopHover();
+    }
+
+    private void OnMouseDown()
+    {
+        if (m_onClicked != null)
+            m_onClicked(m_networkIdentity.GetID(), transform);
+    }
 
     #endregion
 
 
     #region METHODS
+
+    #region UI
+
+    private void ShowInfoMonste()
+    {
+
+    }
+
+    private void HideInfoMonster()
+    {
+
+    }
+
+    #endregion
 
     #region IA
 
