@@ -20,6 +20,11 @@ public class NetworkBattle : MonoBehaviour
         m_networkIdentity.GetSocket().socketManagerRef.Socket.Emit("TryToHitSpell", jsonObject);
     }
 
+    public void SendEndTurnNotification()
+    {
+        m_networkIdentity.GetSocket().socketManagerRef.Socket.Emit("EndTurn");
+    }
+
     public void SendEngageBattleMessage(string id)
     {
         Debug.Log("Send message");

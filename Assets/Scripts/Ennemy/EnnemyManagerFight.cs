@@ -21,6 +21,11 @@ public class EnnemyManagerFight : EnnemyManager
     public OnStopHover m_onStopHover;
     public OnClicked m_onClicked;
 
+    public HUDUIManager m_HUDManager;
+
+    private int m_maxSecondsAllowed = 0;
+    private int m_secondsLeftInTurn = 0;
+
     /********* IA *********/
     public Agent m_agent { get; set; }
 
@@ -39,6 +44,8 @@ public class EnnemyManagerFight : EnnemyManager
     {
         base.Start();
         transform.position = m_grid.Map[(int)m_positionArrayFight.x, (int)m_positionArrayFight.y].transform.position;
+        m_onHover = ShowInfoMonster;
+        m_onStopHover = HideInfoMonster;
     }
 
     public override void Update()
@@ -71,14 +78,33 @@ public class EnnemyManagerFight : EnnemyManager
 
     #region UI
 
-    private void ShowInfoMonste()
+    private void ShowInfoMonster()
     {
 
+        m_ennemyStats.SetObservers();
     }
 
     private void HideInfoMonster()
     {
+        HUDUIManager.Instance.SwitchToSpellsAndControls();
+    }
 
+
+
+    #endregion
+
+    #region GETTER_SETTER
+
+    public void SetTime(int maxSecondsAllowed, int secondsLeft)
+    {
+        m_maxSecondsAllowed = maxSecondsAllowed;
+        m_secondsLeftInTurn = secondsLeft;
+        m_HUDManager.UpdateTime();
+    }
+
+    public float GetTimeAsPercent()
+    {
+        return ThomasBisson.Mathematics.MathsUtils.PercentValueFromAnotherValue((float)m_secondsLeftInTurn, (float)m_maxSecondsAllowed);
     }
 
     #endregion

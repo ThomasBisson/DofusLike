@@ -19,7 +19,8 @@ public class TextUpdate : MonoBehaviour
 
     public void UpdateMyValue()
     {
-        m_text.SetText(""+m_observer());
+        if(m_text != null)
+            m_text.SetText(""+m_observer());
     }
 
 

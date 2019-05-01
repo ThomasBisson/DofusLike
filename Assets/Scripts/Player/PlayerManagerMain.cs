@@ -96,16 +96,10 @@ public class PlayerManagerMain : PlayerManager
     {
         yield return new WaitUntil(() =>
         {
-            Debug.Log("dist : " + Vector3.Distance(position.position, transform.position) + " <= " + m_aggroRange);
-            //System.Threading.Thread.Sleep(50);
             return Vector3.Distance(position.position, transform.position) <= m_aggroRange;
         });
-        Debug.Log("On est passé");
-        //if (Vector3.Distance(position.position, transform.position) <= m_aggroRange)
-        //{
         m_animator.SetBool("isRunning", false);
             m_networkBattle.SendEngageBattleMessage(id);
-        //}
     }
 
     #endregion

@@ -71,17 +71,20 @@ public class BattleManager : MonoBehaviour
             NetworkIdentity oldNI = ennemy.GetComponent<NetworkIdentity>();
             newNI.SetControllerID(oldNI.GetID());
             newNI.SetSocketReference(oldNI.GetSocket());
-            newNI.GetSocket().ModifyNetworkIdentityOfNetworkObject(oldNI.GetID(), oldNI);
+            newNI.GetSocket().ModifyNetworkIdentityOfNetworkObject(newNI.GetID(), newNI);
 
             //EnnemyManagerFight
             EnnemyManager.EnnemyMainToEnnemyFight(ennemy, ref ennemyFight);
+
+            ennemyFight.m_HUDManager = HUDUIManager.Instance;
+            ennemyFight.m_character = Characters.Character.ENNEMY;
 
             groupFight.AddToEnnemyGroup(ennemyFight);
         }
 
 
         //Activate HUD for battle
-        m_HUDManager.SwitchToFight();
+        m_HUDManager.SwitchToFight(fight, groupFight);
 
 
         //Stop load screen and unload main scene

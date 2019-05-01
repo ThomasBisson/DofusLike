@@ -20,13 +20,13 @@ public class EnnemyManager : Characters
     [GreyOut]
     protected Animator m_animator;
 
-    /******* GAMEPLAY *******/
-    public delegate void OnHover();
-    public delegate void OnStopHover();
-    public delegate void OnClicked(string id, Transform position);
-    public OnHover m_onHover;
-    public OnStopHover m_onStopHover;
-    public OnClicked m_onClicked;
+    ///******* GAMEPLAY *******/
+    //public delegate void OnHover();
+    //public delegate void OnStopHover();
+    //public delegate void OnClicked(string id, Transform position);
+    //public OnHover m_onHover;
+    //public OnStopHover m_onStopHover;
+    //public OnClicked m_onClicked;
 
     /******** SpellTree ********/
     protected SpellTree m_spellTree;

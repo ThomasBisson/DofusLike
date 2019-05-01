@@ -130,6 +130,7 @@ public class NetworkClient : MonoBehaviour
             go.name = string.Format("Player ({0})", id);
             NetworkIdentity ni = go.GetComponent<NetworkIdentity>();
             var player = ni.GetComponent<PlayerManagerMain>();
+            player.m_character = Characters.Character.PLAYER;
             if (ni.SetControllerID(id))
             {
                 player.gameObject.AddComponent<NetworkBattle>();
@@ -214,7 +215,8 @@ public class NetworkClient : MonoBehaviour
                 m_serverObjects.Add(dataEnnemies[i]["id"] as string, niEnnemy);
                 //DestroyImmediate(ennemy.GetComponent<NetworkTransform>());
 
-                //Stats, Spell, Group, Characteristic
+                //Stats, Spell, Group, Characteristic, type
+                ennemy.m_character = Characters.Character.ENNEMY;
                 ennemy.SetEnnemyStats(dataEnnemies[i]);
                 spellsAsList = dataEnnemies[i]["myspells"] as List<object>;
                 foreach(var obj in spellsAsList)
@@ -223,8 +225,6 @@ public class NetworkClient : MonoBehaviour
                     ennemy.SetSpellTree(spellJson);
                 }
                 ennemyGroup.AddToEnnemyGroup(ennemy);
-                ennemy.m_ennemyStats.SetObservers();
-                ennemy.m_ennemyStats.ActivateObserversFirstTime();
                 goEnnemy.SetActive(false);
 
                 //Position
@@ -270,8 +270,6 @@ public class NetworkClient : MonoBehaviour
 
             NetworkIdentity ni = m_serverObjects[id];
 
-            //TODO : Find more elegante method to access PlayerManager
-            //ni.GetComponent<PlayerManager>().GoNear(new Vector3((float)x, (float)y, (float)z));
             ni.transform.position = new Vector3((float)x, (float)y, (float)z);
         });
 
@@ -291,6 +289,20 @@ public class NetworkClient : MonoBehaviour
             var data = args[0] as Dictionary<string, object>;
             var ennemy = m_serverObjects[data["id"] as string].GetComponent<EnnemyManagerFight>();
             ennemy.UpdateEnnemyStats(data);
+        });
+
+        socketManagerRef.Socket.On("UpdateTime", (socket, packet, args) => {
+            var data = args[0] as Dictionary<string, object>;
+            var character = m_serverObjects[data["id"] as string].GetComponent<Characters>();
+            if(character.m_character == Characters.Character.PLAYER)
+            {
+                if ((character as PlayerManagerFight) != null)
+                    (character as PlayerManagerFight).SetTime(System.Convert.ToInt32(data["timeEachTurn"]), System.Convert.ToInt32(data["currentTime"]));
+            } else
+            {
+                if ((character as EnnemyManagerFight) != null)
+                    (character as EnnemyManagerFight).SetTime(System.Convert.ToInt32(data["timeEachTurn"]), System.Convert.ToInt32(data["currentTime"]));
+            }
         });
 
         #endregion

@@ -4,18 +4,17 @@ using UnityEngine;
 
 public class Characters : MonoBehaviour
 {
-    //[Header("Characters parent")]
-    protected bool m_isItsTurn = false;
-
-
-    // Start is called before the first frame update
-    void Start()
+    public enum Character
     {
-        
+        PLAYER,
+        ENNEMY
     }
 
-    // Update is called once per frame
-    void Update()
+    [Header("Characters parent")]
+    public Character m_character;
+
+
+    void Start()
     {
         
     }

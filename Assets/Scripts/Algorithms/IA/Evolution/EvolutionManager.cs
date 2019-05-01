@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System;
 using System.IO;
 using ThomasBisson.Algorithms.IA;
+using ThomasBisson.Mathematics;
 #endregion
 
 /// <summary>

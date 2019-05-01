@@ -3,6 +3,7 @@
 
 #region Includes
 using System;
+using ThomasBisson.Mathematics;
 #endregion
 
 namespace ThomasBisson.Algorithms.IA

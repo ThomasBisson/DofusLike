@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using ThomasBisson.Mathematics;
 using UnityEngine;
 
 public class PlayerManagerFight : PlayerManager
@@ -12,6 +13,11 @@ public class PlayerManagerFight : PlayerManager
     private GridFight m_grid;
 
     private int m_spellUsedID;
+
+    public int m_maxSecondsAllowed = 0;
+    public int m_secondsLeftInTurn = 0;
+
+
 
     #endregion
 
@@ -28,9 +34,14 @@ public class PlayerManagerFight : PlayerManager
         base.Start();
         m_grid.PlayerManagerFight = this;
         transform.position = m_grid.Map[(int)m_positionArrayFight.x, (int)m_positionArrayFight.y].transform.position;
+        m_secondsLeftInTurn = 0;
+        m_HUDUIManager.SetEndTurnButton(() =>
+        {
+            if (m_secondsLeftInTurn >= 0)
+                m_networkBattle.SendEndTurnNotification();
+        });
     }
 
-    // Update is called once per frame
     public override void Update()
     {
         HandleMouvement();
@@ -61,6 +72,8 @@ public class PlayerManagerFight : PlayerManager
 
     public bool CanMove(int movementPointUsed)
     {
+        if (m_secondsLeftInTurn <= 0)
+            return false;
         return m_playerStats.CurrentMovementPoint >= movementPointUsed;
     }
 
@@ -113,7 +126,7 @@ public class PlayerManagerFight : PlayerManager
 
     public void TryToActivateSpell(Vector2 XY)
     {
-        if (m_spellUsedID == -1)
+        if (m_spellUsedID == -1 || m_secondsLeftInTurn <= 0)
             return;
 
         int dist = (int)MathsUtils.CircleDistance(XY, m_positionArrayFight);
@@ -132,6 +145,22 @@ public class PlayerManagerFight : PlayerManager
         m_grid.SetCurrentAction(GridFight.Action.Movement);
         m_spellUsedID = -1;
 
+    }
+
+    #endregion
+
+    #region GETTER_SETTER
+
+    public void SetTime(int maxSecondsAllowed, int secondsLeft)
+    {
+        m_maxSecondsAllowed = maxSecondsAllowed;
+        m_secondsLeftInTurn = secondsLeft;
+        m_HUDUIManager.UpdateTime();
+    }
+
+    public float GetTimeAsPercent()
+    {
+        return ThomasBisson.Mathematics.MathsUtils.PercentValueFromAnotherValue((float)m_secondsLeftInTurn, (float)m_maxSecondsAllowed);
     }
 
     #endregion

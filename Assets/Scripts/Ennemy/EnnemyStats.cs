@@ -71,21 +71,20 @@ public class EnnemyStats : Stats
 
     public void SetObservers()
     {
-        //SET HUD SLIDERS
-        //m_ennemyManager.m_ennemyGroup.m_HUDUIManager.SetHealthObserver(delegate
-        //{
-        //    return m_currentHealth;
-        //});
-
-        //m_ennemyManager.m_ennemyGroup.m_HUDUIManager.SetActionPointsObserver(delegate
-        //{
-        //    return m_currentActionPoint;
-        //});
-
-        //m_ennemyManager.m_ennemyGroup.m_HUDUIManager.SetMovementPointsObserver(delegate
-        //{
-        //    return m_currentMovementPoint;
-        //});
+        HUDUIManager.Instance.SwitchToOtherInfos(
+            delegate
+            {
+                return m_currentHealth;
+            },
+            delegate
+            {
+                return m_currentActionPoint;
+            },
+            delegate
+            {
+                return m_currentMovementPoint;
+            }
+        );
     }
 
     public void ActivateObserversFirstTime()

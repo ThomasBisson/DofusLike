@@ -11,6 +11,9 @@ public class SpellsAndControls : MonoBehaviour
     [SerializeField]
     private Button m_endTurnButton;
 
+    [SerializeField]
+    private ImageUpdate m_imageSecondsInTurn;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -36,6 +39,17 @@ public class SpellsAndControls : MonoBehaviour
 
         for (int i = 0; i < ids.Count; i++)
             m_spellButtons[i].SetOnClick(method, ids[i]);
+    }
+
+
+    public void SetObserverImageSecondsInTurn(ImageUpdate.ImageObserverValueGetter observer)
+    {
+        m_imageSecondsInTurn.m_observer = observer;
+    }
+
+    public void SetEndTurnButton(UnityEngine.Events.UnityAction func)
+    {
+        m_endTurnButton.onClick.AddListener(func);
     }
 
     #endregion
