@@ -91601,8 +91601,8 @@ GameObject:
   - component: {fileID: 1241583240}
   - component: {fileID: 8969160583550634505}
   - component: {fileID: 6961928569105316783}
-  - component: {fileID: 4532980353915170549}
   - component: {fileID: 5570431924848855699}
+  - component: {fileID: 8258871841025951944}
   m_Layer: 0
   m_Name: Xuchu
   m_TagString: Untagged
@@ -91738,27 +91738,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_oldPosition: {x: 0, y: 0, z: 0}
   m_playerManager: {fileID: 0}
---- !u!114 &4532980353915170549
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1241583239}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ecd19fb777a84a4419ecc86c3a31c20e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_speed: 5
-  m_positionArrayMain: {x: 0, y: 0}
-  m_positionArrayFight: {x: 0, y: 0}
-  m_animator: {fileID: 0}
-  m_playerStats:
-    m_name: 
-    m_baseXPGiving: 0
-    m_state: 0
-  m_grid: {fileID: 0}
 --- !u!54 &5570431924848855699
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -91775,6 +91754,25 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 126
   m_CollisionDetection: 0
+--- !u!114 &8258871841025951944
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1241583239}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16ea0006afe055c478a23359cab344e5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_character: 0
+  m_networkIdentity: {fileID: 0}
+  m_speed: 5
+  m_positionArrayMain: {x: 0, y: 0}
+  m_positionArrayFight: {x: 0, y: 0}
+  m_HUDUIManager: {fileID: 0}
+  m_strategy: {fileID: 0}
 --- !u!1 &1263313244
 GameObject:
   m_ObjectHideFlags: 0

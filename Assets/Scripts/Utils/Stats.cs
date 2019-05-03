@@ -104,36 +104,57 @@ public class Stats
                 break;
             case PossibleStats.CurrentHealth:
                 if (!IsObserverAlreadyInList(m_eventsCurrentHealth, newObserver))
+                {
                     m_eventsCurrentHealth += new StatEventHandlerInt(newObserver);
+                    m_eventsCurrentHealth.Invoke(m_currentHealth);
+                }
                 break;
             case PossibleStats.CurrentShield:
                 if (!IsObserverAlreadyInList(m_eventsCurrentShield, newObserver))
+                {
                     m_eventsCurrentShield += new StatEventHandlerInt(newObserver);
+                    m_eventsCurrentShield.Invoke(m_currentShield);
+                }
                 break;
             case PossibleStats.PA:
                 if (!IsObserverAlreadyInList(m_eventsActionPoints, newObserver))
+                {
                     m_eventsActionPoints += new StatEventHandlerInt(newObserver);
+                    m_eventsActionPoints.Invoke(m_actionPoint);
+                }
                 break;
             case PossibleStats.CurrentPA:
                 if (!IsObserverAlreadyInList(m_eventsCurrentActionPoints, newObserver))
+                {
                     m_eventsCurrentActionPoints += new StatEventHandlerInt(newObserver);
+                    m_eventsCurrentActionPoints.Invoke(m_currentActionPoint);
+                }
                 break;
             case PossibleStats.PM:
                 if (!IsObserverAlreadyInList(m_eventsMovementPoints, newObserver))
+                {
                     m_eventsMovementPoints += new StatEventHandlerInt(newObserver);
+                    m_eventsMovementPoints.Invoke(m_movementPoint);
+                }
                 break;
             case PossibleStats.CurrentPM:
                 if (!IsObserverAlreadyInList(m_eventsCurrentMovementPoints, newObserver))
+                {
                     m_eventsCurrentMovementPoints += new StatEventHandlerInt(newObserver);
+                    m_eventsCurrentMovementPoints.Invoke(m_currentMovementPoint);
+                }
                 break;
         }
     }
 
     private bool IsObserverAlreadyInList(StatEventHandlerInt list, StatEventHandlerInt newObserver)
     {
-        foreach (var existingHandler in list.GetInvocationList() )
-            if (existingHandler == newObserver) //If it doesn't work use : if(objA.Method.Name == objB.Method.Name && objA.Target.GetType().FullName == objB.Target.GetType().FullName) OR Delegate.Equals(objA, objB)
-                return true;
+        if (list != null)
+        {
+            foreach (var existingHandler in list.GetInvocationList())
+                if (existingHandler == newObserver) //If it doesn't work use : if(objA.Method.Name == objB.Method.Name && objA.Target.GetType().FullName == objB.Target.GetType().FullName) OR Delegate.Equals(objA, objB)
+                    return true;
+        }
         return false;
     }
 

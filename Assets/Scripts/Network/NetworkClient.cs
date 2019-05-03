@@ -202,16 +202,22 @@ public class NetworkClient : MonoBehaviour
         {
             Debug.Log("Ennemy : \n" + packet);
 
-            //Handling spwaning group of ennemies
+            //Get needed values in data
             var dataGroup = args[0] as Dictionary<string, object>;
             var dataEnnemiesAsList = dataGroup["monsters"] as List<object>;
+            var dataPosGroup = dataGroup["position"] as Dictionary<string, object>;
             var dataEnnemies = new List<Dictionary<string, object>>();
+            var dataEnnemiesCaracteristic = new List<Dictionary<string, object>>();
+
             foreach (var obj in dataEnnemiesAsList)
+            {
                 dataEnnemies.Add(obj as Dictionary<string, object>);
+                dataEnnemiesCaracteristic.Add(dataEnnemies[dataEnnemies.Count - 1]["characteristic"] as Dictionary<string, object>);
+            }
             string id = dataGroup["id"] as string;
 
             //Instantiate first monster that will be the EnnemyGroup
-            GameObject go = Instantiate((GameObject)Resources.Load("EnnemiesPrefabs/" + dataEnnemies[0]["name"], typeof(GameObject)), m_networkContainer);
+            GameObject go = Instantiate((GameObject)Resources.Load("EnnemiesPrefabs/" + dataEnnemiesCaracteristic[0]["name"], typeof(GameObject)), m_networkContainer);
 
             //set the NetworkIdentity of the EnnemyGroup
             go.name = string.Format("Ennemies ({0})", id);
@@ -225,8 +231,8 @@ public class NetworkClient : MonoBehaviour
             List<NetworkIdentity> niEnnemies = new List<NetworkIdentity>();
             for (int i = 0; i < dataEnnemies.Count; i++)
             {
-                goEnnemy = Instantiate((GameObject)Resources.Load("EnnemiesPrefabs/" + dataEnnemies[i]["name"], typeof(GameObject)), go.transform);
-                goEnnemy.name = dataEnnemies[i]["name"] + " " + dataEnnemies[i]["id"];
+                goEnnemy = Instantiate((GameObject)Resources.Load("EnnemiesPrefabs/" + dataEnnemiesCaracteristic[i]["name"], typeof(GameObject)), go.transform);
+                goEnnemy.name = dataEnnemiesCaracteristic[i]["name"] + " " + dataEnnemies[i]["id"];
 
                 NetworkIdentity niEnnemy = goEnnemy.GetComponent<NetworkIdentity>();
                 niEnnemy.SetControllerID(dataEnnemies[i]["id"] as string);
@@ -274,7 +280,7 @@ public class NetworkClient : MonoBehaviour
         {
             var data = args[0] as Dictionary<string, object>;
             var pos = data["position"] as Dictionary<string, object>;
-            GameManager.Instance.m_playerManagerFight.NewDestination(
+            GameManager.Instance.m_playerManager.GetPlayerFight().NewDestination(
                 new Vector2((float)(double)pos["x"], (float)(double)pos["y"])
             );
         });
@@ -297,22 +303,22 @@ public class NetworkClient : MonoBehaviour
             var character = m_serverObjects[data["id"] as string].GetComponent<Characters>();
             if (character.m_character == Characters.Character.PLAYER)
             {
-                if ((character as PlayerManagerFight) != null)
+                if ((character as PlayerManager) != null)
                 {
-                    (character as PlayerManagerFight).m_stats.CurrentHealth = (int)(double)data["currentHealth"];
-                    (character as PlayerManagerFight).m_stats.CurrentShield = (int)(double)data["currentShield"];
-                    (character as PlayerManagerFight).m_stats.CurrentActionPoint = (int)(double)data["currentActionPoints"];
-                    (character as PlayerManagerFight).m_stats.CurrentMovementPoint = (int)(double)data["currentMovementPoints"];
+                    (character as PlayerManager).m_stats.CurrentHealth = (int)(double)data["currentHealth"];
+                    (character as PlayerManager).m_stats.CurrentShield = (int)(double)data["currentShield"];
+                    (character as PlayerManager).m_stats.CurrentActionPoint = (int)(double)data["currentActionPoints"];
+                    (character as PlayerManager).m_stats.CurrentMovementPoint = (int)(double)data["currentMovementPoints"];
                 }
             }
             else
             {
-                if ((character as EnnemyManagerFight) != null)
+                if ((character as EnnemyManager) != null)
                 {
-                    (character as EnnemyManagerFight).m_stats.CurrentHealth = (int)(double)data["currentHealth"];
-                    (character as EnnemyManagerFight).m_stats.CurrentShield = (int)(double)data["currentShield"];
-                    (character as EnnemyManagerFight).m_stats.CurrentActionPoint = (int)(double)data["currentActionPoints"];
-                    (character as EnnemyManagerFight).m_stats.CurrentMovementPoint = (int)(double)data["currentMovementPoints"];
+                    (character as EnnemyManager).m_stats.CurrentHealth = (int)(double)data["currentHealth"];
+                    (character as EnnemyManager).m_stats.CurrentShield = (int)(double)data["currentShield"];
+                    (character as EnnemyManager).m_stats.CurrentActionPoint = (int)(double)data["currentActionPoints"];
+                    (character as EnnemyManager).m_stats.CurrentMovementPoint = (int)(double)data["currentMovementPoints"];
                 }
                      
             }
@@ -325,12 +331,12 @@ public class NetworkClient : MonoBehaviour
             var character = m_serverObjects[data["id"] as string].GetComponent<Characters>();
             if(character.m_character == Characters.Character.PLAYER)
             {
-                if ((character as PlayerManagerFight) != null)
-                    (character as PlayerManagerFight).SetTime((int)(double)data["timeEachTurn"], (int)(double)data["currentTime"]);
+                if ((character as PlayerManager) != null)
+                    (character as PlayerManager).SetTime((int)(double)data["timeEachTurn"], (int)(double)data["currentTime"]);
             } else
             {
-                if ((character as EnnemyManagerFight) != null)
-                    (character as EnnemyManagerFight).SetTime((int)(double)data["timeEachTurn"], (int)(double)data["currentTime"]);
+                if ((character as EnnemyManager) != null)
+                    (character as EnnemyManager).SetTime((int)(double)data["timeEachTurn"], (int)(double)data["currentTime"]);
             }
         });
 

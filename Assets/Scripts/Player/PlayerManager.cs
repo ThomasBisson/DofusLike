@@ -12,19 +12,48 @@ public class PlayerManager : Characters
     /******** HUD **********/
     public HUDUIManager m_HUDUIManager;
 
-    protected NetworkBattle m_networkBattle;
+    public NetworkBattle m_networkBattle { get; private set; }
 
     /*************************** TEST STRATEGY *******************/
-    public PlayerStrategy m_strategy;
+    public enum PossibleStrategy
+    {
+        Fight,
+        Main
+    }
+
+    private PlayerStrategy m_strategy;
+
+
+    /************** Strategy Main Mono vars***************/
+    [SerializeField]
+    [GreyOut]
+    private GridMain m_gridMain;
+
+    /************* Strategy Fight Mono vars **************/
+    [SerializeField]
+    [GreyOut]
+    private GridFight m_gridFight;
 
     #endregion
 
     #region Unity_METHODS
 
-    protected virtual void Awake()
+    protected override void Awake()
     {
         base.Awake();
         GetComponent<NetworkTransform>().m_playerManager = this;
+        DontDestroyOnLoad(this.gameObject);
+    }
+
+    protected override void Start()
+    {
+        m_strategy = new PlayerMain(this);
+    }
+
+    protected override void Update()
+    {
+        base.Update();
+        m_strategy.HandleClickOnGround();
     }
 
     #endregion
@@ -34,9 +63,18 @@ public class PlayerManager : Characters
     #region MOVEMENTS
     
 
-    //TODO : make him go tile by tile from combat
-    public virtual void GoNear(Vector3 clickPoint)
+    ////TODO : make him go tile by tile from combat
+    //public virtual void GoNear(Vector3 clickPoint)
+    //{
+    //    m_targetPositionChanged = true;
+    //    m_animator.SetBool("isRunning", true);
+    //    transform.LookAt(m_targetPosition);
+    //    m_strategy.GoNear(clickPoint, m_targetPosition);
+    //}
+
+    public void ChangeTarget(Vector3 clickPoint)
     {
+        m_targetPosition = clickPoint;
         m_targetPositionChanged = true;
         m_animator.SetBool("isRunning", true);
         transform.LookAt(m_targetPosition);
@@ -63,27 +101,68 @@ public class PlayerManager : Characters
     //    //TODO : Make the item go here
     //}
 
+    public bool IsItsTurn()
+    {
+        return m_secondsLeftInTurn > 0;
+    }
 
-    /******************** TEST STRATEGY ****************/
+
     public PlayerMain GetPlayerMain() { return (m_strategy as PlayerMain); }
     public PlayerFight GetPlayerFight() { return (m_strategy as PlayerFight); }
 
     #endregion
 
+    #region Strategy
+
+    public void ChangeStrategy(PossibleStrategy strategy)
+    {
+        switch(strategy)
+        {
+            case PossibleStrategy.Main:
+                m_strategy = new PlayerMain(this);
+                m_gridMain = FindObjectOfType<GridMain>();
+                GetPlayerMain().SetGetterCallbacks(
+                    () => {
+                        return m_gridMain;
+                    }, 
+                    () => {
+                        return transform;
+                    });
+                GetPlayerMain().Start();
+                break;
+
+            case PossibleStrategy.Fight:
+                m_strategy = new PlayerFight(this);
+                m_gridFight = FindObjectOfType<GridFight>();
+                GetPlayerFight().SetGetterCallbacks(
+                    () => {
+                        return m_gridFight;
+                    },
+                    () => {
+                        return transform;
+                    }
+                );
+                GetPlayerFight().Start();
+                break;
+        }
+    }
+
+    #endregion
+
     #region STATIC
 
-    public static void PlayerMainToPlayerFight(PlayerManagerMain main, ref PlayerManagerFight fight)
-    {
-        fight.SetStats(main.m_stats);
-        fight.SetSpellTree(main.m_spellTree);
-        fight.m_speed = main.m_speed;
-        fight.SetHUDManager(main.m_HUDUIManager);
-        fight.m_networkIdentity = main.m_networkIdentity;
-        fight.SetHUDSpellButtons();
-        fight.m_positionArrayFight = main.m_positionArrayFight;
-        fight.m_positionArrayMain = main.m_positionArrayMain;
-        fight.m_icon = main.m_icon;
-    }
+    //public static void PlayerMainToPlayerFight(PlayerManagerMain main, ref PlayerManagerFight fight)
+    //{
+    //    fight.SetStats(main.m_stats);
+    //    fight.SetSpellTree(main.m_spellTree);
+    //    fight.m_speed = main.m_speed;
+    //    fight.SetHUDManager(main.m_HUDUIManager);
+    //    fight.m_networkIdentity = main.m_networkIdentity;
+    //    fight.SetHUDSpellButtons();
+    //    fight.m_positionArrayFight = main.m_positionArrayFight;
+    //    fight.m_positionArrayMain = main.m_positionArrayMain;
+    //    fight.m_icon = main.m_icon;
+    //}
 
     #endregion
 

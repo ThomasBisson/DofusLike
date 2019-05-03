@@ -55,24 +55,9 @@ public class HUDUIManager : MonoBehaviour
         m_switchableManager.SwitchToOtherInfos(health, pa, pm);
     }
 
-    public void SetEndTurnButton(UnityEngine.Events.UnityAction func)
-    {
-        m_switchableManager.SetEndTurnButton(func);
-    }
-
     public void SwitchToSpellsAndControls()
     {
         m_switchableManager.SwitchToSpellsAndControls();
-    }
-
-    public void UpdateTime()
-    {
-        m_switchableManager.UpdateTime();
-    }
-
-    public void SwitchToFight(PlayerManagerFight playerFight, EnnemyGroupFight ennemyGroupFight)
-    {
-        m_switchableManager.SwitchToFight(playerFight, ennemyGroupFight);
     }
 
     public void SwitchToMain()

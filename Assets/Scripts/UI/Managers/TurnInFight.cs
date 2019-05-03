@@ -25,28 +25,23 @@ public class TurnInFight : MonoBehaviour
         {
             m_iconsTurnInFight.Add(Instantiate<IconTurnInFight>(m_prefabTurnInFight, transform));
 
-            if(charac.m_character == Characters.Character.PLAYER)
-            {
+            //if(charac.m_character == Characters.Character.PLAYER)
+            //{
+            charac.SubscribeToIconEvents(m_iconsTurnInFight[m_iconsTurnInFight.Count - 1].UpdateIcon);
+            charac.SubscribeToTimeEvents(m_iconsTurnInFight[m_iconsTurnInFight.Count - 1].UpdateSecondsImage);
+                
                 //m_iconsTurnInFight[m_iconsTurnInFight.Count - 1].SetObserver(delegate
                 //{
                 //    return (charac as PlayerManagerFight).GetTimeAsPercent() / 100f;
                 //});
-            } else
-            {
+            //} else
+            //{
                 //m_iconsTurnInFight[m_iconsTurnInFight.Count - 1].SetObserver(delegate
                 //{
                 //    return (charac as EnnemyManagerFight).GetTimeAsPercent() / 100f;
                 //});
-            }
+            //}
             //m_iconsTurnInFight[m_iconsTurnInFight.Count - 1].UpdateValue();
         }
-    }
-
-
-
-    public void UpdateValues()
-    {
-        foreach (var iconturn in m_iconsTurnInFight)
-            iconturn.UpdateValue();
     }
 }

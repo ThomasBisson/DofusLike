@@ -4,5 +4,18 @@ using UnityEngine;
 
 public abstract class PlayerStrategy
 {
-    public abstract void Salut();
+    protected PlayerManager m_playerManager;
+
+    public PlayerStrategy(PlayerManager player)
+    {
+        m_playerManager = player;
+    }
+
+    public abstract void Start();
+
+    public abstract void GoNear(Vector3 clickPoint);
+
+    public abstract void HandleClickOnGround();
+
+    public abstract void RandomizePlayerPosition(bool mustTeleportPlayer);
 }

@@ -14,16 +14,18 @@ public class Characters : MonoBehaviour
 
     [Header("Characters parent")]
     public Character m_character;
-    protected SpellTree m_spellTree;
+    public SpellTree m_spellTree { get; private set; }
     public Stats m_stats { get; private set; }
+    [SerializeField]
+    [GreyOut]
     protected NetworkIdentity m_networkIdentity;
 
+    public delegate void IconEventHandler(Sprite icon);
+    public event IconEventHandler m_iconEvents;
     protected Sprite m_icon;
 
     /**** Movement *****/
-    [SerializeField]
-    [GreyOut]
-    protected Animator m_animator;
+    public Animator m_animator { get; private set; }
     [SerializeField]
     protected float m_speed = 5f;
     protected Vector3 m_targetPosition;
@@ -111,15 +113,21 @@ public class Characters : MonoBehaviour
 
     public void SubscribeToTimeEvents(TimeEventHandler newObserver)
     {
-        if (!IsObserverAlreadyInList(newObserver))
+        if (!IsObserverTimeAlreadyInList(newObserver))
+        {
             m_timeEvents += new TimeEventHandler(newObserver);
+            m_timeEvents.Invoke(GetTimeAsPercent());
+        }
     }
 
-    private bool IsObserverAlreadyInList(TimeEventHandler newObserver)
+    private bool IsObserverTimeAlreadyInList(TimeEventHandler newObserver)
     {
-        foreach (var existingHandler in m_timeEvents.GetInvocationList())
-            if (existingHandler == newObserver) //If it doesn't work use : if(objA.Method.Name == objB.Method.Name && objA.Target.GetType().FullName == objB.Target.GetType().FullName) OR Delegate.Equals(objA, objB)
-                return true;
+        if (m_timeEvents != null)
+        {
+            foreach (var existingHandler in m_timeEvents.GetInvocationList())
+                if (existingHandler == newObserver) //If it doesn't work use : if(objA.Method.Name == objB.Method.Name && objA.Target.GetType().FullName == objB.Target.GetType().FullName) OR Delegate.Equals(objA, objB)
+                    return true;
+        }
         return false;
     }
 
@@ -130,13 +138,40 @@ public class Characters : MonoBehaviour
         m_timeEvents.Invoke(GetTimeAsPercent());
         if (maxSecondsAllowed == secondsLeft)
         {
-            //m_HUDUIManager.MakeLeftTopIconAppear(m_icon);
+            //TODO : to remove
+            //HUDUIManager.Instance.MakeLeftTopIconAppear(m_icon);
         }
     }
 
     private float GetTimeAsPercent()
     {
         return ThomasBisson.Mathematics.MathsUtils.PercentValueFromAnotherValue((float)m_secondsLeftInTurn, (float)m_maxSecondsAllowed);
+    }
+
+    #endregion
+
+    #region Icon
+
+    public Sprite Icon { set { m_icon = value; m_iconEvents.Invoke(m_icon); } }
+
+    public void SubscribeToIconEvents(IconEventHandler newObserver)
+    {
+        if (!IsObserverIconAlreadyInList(newObserver))
+        {
+            m_iconEvents += new IconEventHandler(newObserver);
+            m_iconEvents.Invoke(m_icon);
+        }
+    }
+
+    private bool IsObserverIconAlreadyInList(IconEventHandler newObserver)
+    {
+        if (m_iconEvents != null)
+        {
+            foreach (var existingHandler in m_iconEvents.GetInvocationList())
+                if (existingHandler == newObserver) //If it doesn't work use : if(objA.Method.Name == objB.Method.Name && objA.Target.GetType().FullName == objB.Target.GetType().FullName) OR Delegate.Equals(objA, objB)
+                    return true;
+        }
+        return false;
     }
 
     #endregion

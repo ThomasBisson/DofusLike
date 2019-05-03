@@ -42,16 +42,6 @@ public class SwitchableFight : MonoBehaviour
         m_leftTopIcon.rectTransform.DOLocalMoveX(m_leftTopIcon.rectTransform.localPosition.x - 150, 0.5f);
     }
 
-    public void SetEndTurnButton(UnityEngine.Events.UnityAction func)
-    {
-        m_spellsAndControls.SetEndTurnButton(func);
-    }
-
-    public void UpdateTime()
-    {
-        m_turnInFight.UpdateValues();
-    }
-
     public void SwitchToOtherInfos(HUDObserverValueGetter health, HUDObserverValueGetter pa, HUDObserverValueGetter pm)
     {
         if (!m_isInSpellsAndControls)
@@ -74,13 +64,12 @@ public class SwitchableFight : MonoBehaviour
         m_othersInfos.gameObject.SetActive(false);
     }
 
-    public void PopulateTurnInFightBar(PlayerManagerFight playerFight, EnnemyGroupFight ennemyGroupFight)
+    public void PopulateTurnInFightBar(PlayerManager player, EnnemyGroup ennemyGroup)
     {
         List<Characters> characters = new List<Characters>();
-        characters.Add(playerFight);
-        foreach (var ennemy in ennemyGroupFight.m_ennemiesFight)
+        characters.Add(player);
+        foreach (var ennemy in ennemyGroup.m_ennemies)
             characters.Add(ennemy);
-        //m_turnInFight.PopulateTurnInFightBar(playerFight, ennemyGroupFight);
         m_turnInFight.PopulateTurnInFightBar(characters);
     }
 

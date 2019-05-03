@@ -9,18 +9,18 @@ public class GameManager : MonoBehaviour
 
     public HUDUIManager m_HUDUIManager;
 
-    private PlayerManagerMain m_playerManagerMain;
-    public PlayerManagerMain m_PlayerManagerMain
-    {
-        get { return m_playerManagerMain; }
-        set
-        {
-            m_playerManagerMain = value;
-            Camera.main.GetComponent<FollowTarget>().Target = m_playerManagerMain.transform;
-        }
-    }
+    public PlayerManager m_playerManager;
+    //public PlayerManagerMain m_PlayerManagerMain
+    //{
+    //    get { return m_playerManagerMain; }
+    //    set
+    //    {
+    //        m_playerManagerMain = value;
+    //        Camera.main.GetComponent<FollowTarget>().Target = m_playerManagerMain.transform;
+    //    }
+    //}
 
-    public PlayerManagerFight m_playerManagerFight;
+    //public PlayerManagerFight m_playerManagerFight;
 
     private void Awake()
     {
@@ -37,13 +37,13 @@ public class GameManager : MonoBehaviour
 
 
         //Set the PlayerManagerMain
-        var player = ni.GetComponent<PlayerManagerMain>();
+        var player = ni.GetComponent<PlayerManager>();
         player.m_character = Characters.Character.PLAYER;
         if (ni.IsControlling())
         {
             player.gameObject.AddComponent<NetworkBattle>();
             player.FindNetworkBattle();
-            m_PlayerManagerMain = player;
+            m_playerManager = player;
         }
         player.m_HUDUIManager = m_HUDUIManager;
         //Subscribe to events
@@ -105,18 +105,17 @@ public class GameManager : MonoBehaviour
 
 
         //Create EnnemyGroup
-        EnnemyGroupMain ennemyGroup = niEnnemyGroup.gameObject.AddComponent<EnnemyGroupMain>();
+        EnnemyGroup ennemyGroup = niEnnemyGroup.gameObject.AddComponent<EnnemyGroup>();
         ennemyGroup.m_HUDUIManager = m_HUDUIManager;
 
         //Create each EnnemyManager
-        GameObject goEnnemy;
-        EnnemyManagerMain ennemy;
+        EnnemyManager ennemy;
         List<object> spellsAsList;
         Dictionary<string, object> dataPosFight;
         for (int i = 0; i < dataEnnemies.Count; i++)
         {
             //Add EnnemyManager
-            ennemy = niEnnemies[i].gameObject.AddComponent<EnnemyManagerMain>();
+            ennemy = niEnnemies[i].gameObject.AddComponent<EnnemyManager>();
             ennemy.m_character = Characters.Character.ENNEMY;
 
             //Set Stats
@@ -132,7 +131,7 @@ public class GameManager : MonoBehaviour
             ennemy.FindIconInResources();
 
             //Set SpellTree
-            spellsAsList = dataEnnemies[i]["myspells"] as List<object>;
+            spellsAsList = dataEnnemiesCaracteristic[i]["myspells"] as List<object>;
             foreach (var obj in spellsAsList)
             {
                 string spellJson = JsonConvert.SerializeObject(obj as Dictionary<string, object>, Formatting.None);
@@ -142,7 +141,7 @@ public class GameManager : MonoBehaviour
             ennemy.gameObject.SetActive(false);
 
             //Set the ennemy's position
-            dataPosFight = dataEnnemies[i]["position"] as Dictionary<string, object>;
+            dataPosFight = dataEnnemies[i]["positionArrayFight"] as Dictionary<string, object>;
             float xEnnemy = (float)(double)dataPosFight["x"];
             float yEnnemy = (float)(double)dataPosFight["y"];
             ennemy.m_positionArrayFight = new Vector2(xEnnemy, yEnnemy);

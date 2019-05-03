@@ -30,7 +30,7 @@ public class GridFight : GridParent
         private set { m_map = value; }
     }
 
-    public PlayerManagerFight m_PlayerManagerFight { get; set; }
+    public PlayerManager m_playerManager { get; set; }
 
     #endregion
 
@@ -77,19 +77,19 @@ public class GridFight : GridParent
     #region GRID_TILES_CALLBACKS
     public void OnGridHover(Vector2 XY)
     {
-        if (m_PlayerManagerFight == null)
+        if (m_playerManager == null)
             return;
 
-        if (m_PlayerManagerFight.m_positionArrayFight == XY)
+        if (m_playerManager.m_positionArrayFight == XY)
             return;
 
         m_map[(int)XY.x, (int)XY.y].AddColor(GroundGrid.PossibleDisplay.Pointed);
 
         if (m_action == Action.Movement)
         {
-            m_astar.AstarRun(m_PlayerManagerFight.m_positionArrayFight, XY);
+            m_astar.AstarRun(m_playerManager.m_positionArrayFight, XY);
             var path = m_astar.GetPath();
-            if (m_PlayerManagerFight.CanMove(path.Count))
+            if (m_playerManager.GetPlayerFight().CanMove(path.Count))
             {
                 foreach (var tile in path)
                     m_map[tile.X, tile.Y].AddColor(GroundGrid.PossibleDisplay.Movement);
@@ -115,18 +115,18 @@ public class GridFight : GridParent
     {
         if (m_action == Action.Movement)
         {
-            int dist = (int)MathsUtils.CircleDistance(XY, m_PlayerManagerFight.m_positionArrayFight);
-            if (!m_PlayerManagerFight.CanMove(dist))
+            int dist = (int)MathsUtils.CircleDistance(XY, m_playerManager.m_positionArrayFight);
+            if (!m_playerManager.GetPlayerFight().CanMove(dist))
                 return;
             //PlayerManagerFight.GoNear(m_map[(int)XY.x, (int)XY.y].transform.position);
-            m_PlayerManagerFight.SendMovementInFightMessage(XY);
+            m_playerManager.GetPlayerFight().SendMovementInFightMessage(XY);
 
             OnStopGridHover(XY);
 
             //PlayerManagerFight.m_positionArrayFight = XY;
         } else if(m_action == Action.Spell)
         {
-            m_PlayerManagerFight.TryToActivateSpell(XY);
+            m_playerManager.GetPlayerFight().TryToActivateSpell(XY);
         }
     }
 
@@ -160,10 +160,10 @@ public class GridFight : GridParent
             for (int j = -range; j < range + 1; j++)
                 if (Math.Abs(i) + Math.Abs(j) <= range)
                 {
-                    if ((int)(m_PlayerManagerFight.m_positionArrayFight.x - i) >= 0 && (int)(m_PlayerManagerFight.m_positionArrayFight.x - i) < m_totalSizeX &&
-                        (int)(m_PlayerManagerFight.m_positionArrayFight.y + j) >= 0 && (int)(m_PlayerManagerFight.m_positionArrayFight.y + j) < m_totalSizeZ)
+                    if ((int)(m_playerManager.m_positionArrayFight.x - i) >= 0 && (int)(m_playerManager.m_positionArrayFight.x - i) < m_totalSizeX &&
+                        (int)(m_playerManager.m_positionArrayFight.y + j) >= 0 && (int)(m_playerManager.m_positionArrayFight.y + j) < m_totalSizeZ)
                     {
-                        m_map[(int)m_PlayerManagerFight.m_positionArrayFight.x - i, (int)m_PlayerManagerFight.m_positionArrayFight.y + j].AddColor(GroundGrid.PossibleDisplay.Spell);
+                        m_map[(int)m_playerManager.m_positionArrayFight.x - i, (int)m_playerManager.m_positionArrayFight.y + j].AddColor(GroundGrid.PossibleDisplay.Spell);
                     }
                 }
     }
@@ -175,10 +175,10 @@ public class GridFight : GridParent
             for (int j = -range; j < range + 1; j++)
                 if (Math.Abs(i) + Math.Abs(j) <= range)
                 {
-                    if ((int)(m_PlayerManagerFight.m_positionArrayFight.x - i) >= 0 && (int)(m_PlayerManagerFight.m_positionArrayFight.x - i) < m_totalSizeX &&
-                        (int)(m_PlayerManagerFight.m_positionArrayFight.y + j) >= 0 && (int)(m_PlayerManagerFight.m_positionArrayFight.y + j) < m_totalSizeZ)
+                    if ((int)(m_playerManager.m_positionArrayFight.x - i) >= 0 && (int)(m_playerManager.m_positionArrayFight.x - i) < m_totalSizeX &&
+                        (int)(m_playerManager.m_positionArrayFight.y + j) >= 0 && (int)(m_playerManager.m_positionArrayFight.y + j) < m_totalSizeZ)
                     {
-                        m_map[(int)m_PlayerManagerFight.m_positionArrayFight.x - i, (int)m_PlayerManagerFight.m_positionArrayFight.y + j].HideYourself();
+                        m_map[(int)m_playerManager.m_positionArrayFight.x - i, (int)m_playerManager.m_positionArrayFight.y + j].HideYourself();
                     }
                 }
     }

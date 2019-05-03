@@ -18,8 +18,13 @@ public class IconTurnInFight : MonoBehaviour
         
     }
 
-    public void SetIcon(Sprite sprite)
+    public void UpdateIcon(Sprite sprite)
     {
         m_icon.sprite = sprite;
+    }
+
+    public void UpdateSecondsImage(float secondsAsPercent)
+    {
+        m_secondsImage.UpdateMyFillValue(secondsAsPercent);
     }
 } 

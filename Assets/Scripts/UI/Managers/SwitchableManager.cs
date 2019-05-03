@@ -19,17 +19,6 @@ public class SwitchableManager : MonoBehaviour
         
     }
 
-    public void SetEndTurnButton(UnityEngine.Events.UnityAction func)
-    {
-        m_switchableFight.SetEndTurnButton(func);
-    }
-
-    public void UpdateTime()
-    {
-        if (!m_isCurrentViewMain)
-            m_switchableFight.UpdateTime();
-    }
-
     public void SwitchToOtherInfos(HUDObserverValueGetter health, HUDObserverValueGetter pa, HUDObserverValueGetter pm)
     {
         m_switchableFight.SwitchToOtherInfos(health, pa, pm);
@@ -40,14 +29,14 @@ public class SwitchableManager : MonoBehaviour
         m_switchableFight.SwitchToSpellsAndControls();
     }
 
-    public void SwitchToFight(PlayerManagerFight playerFight, EnnemyGroupFight ennemyGroupFight)
+    public void SwitchToFight(PlayerManager player, EnnemyGroup ennemyGroup)
     {
         if (!m_isCurrentViewMain)
             return;
 
         m_isCurrentViewMain = false;
 
-        m_switchableFight.PopulateTurnInFightBar(playerFight, ennemyGroupFight);
+        m_switchableFight.PopulateTurnInFightBar(player, ennemyGroup);
         
 
         m_switchableMain.gameObject.SetActive(false);
