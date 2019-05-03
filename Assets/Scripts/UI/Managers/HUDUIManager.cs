@@ -15,13 +15,20 @@ public class HUDUIManager : MonoBehaviour
 
     [SerializeField]
     private TextUpdate m_healthTextCharacter;
+    public TextUpdate HealthTextChara { get { return m_healthTextCharacter; } }
+    [SerializeField]
+    private TextUpdate m_shieldTextCharacter;
+    public TextUpdate ShieldTextChara { get { return m_shieldTextCharacter; } }
     [SerializeField]
     private TextUpdate m_actionPointsTextChatacter;
+    public TextUpdate ActionPointsTextChara { get { return m_actionPointsTextChatacter; } }
     [SerializeField]
     private TextUpdate m_movementPointsTextChatacter;
+    public TextUpdate MovementPointsTextChara { get { return m_movementPointsTextChatacter; } }
 
     [SerializeField]
     private SwitchableManager m_switchableManager;
+    public SwitchableManager SwitchableMana { get { return m_switchableManager; } }
 
     [SerializeField]
     private Image m_blackScreen;
@@ -38,43 +45,9 @@ public class HUDUIManager : MonoBehaviour
     {
     }
 
-    #region PLAYER
-
-    public void SetHealthObserver(HUDObserverValueGetter observer)
+    public void FillCallbacksAndIconsSpellButtons(SpellButton.OnClick method, List<int> ids, List<Sprite> sprites)
     {
-        m_healthTextCharacter.m_observer = observer;
-    }
-
-    public void RefreshHealthSlider()
-    {
-        m_healthTextCharacter.UpdateMyValue();
-    }
-
-    public void SetActionPointsObserver(HUDObserverValueGetter observer)
-    {
-        m_actionPointsTextChatacter.m_observer = observer;
-    }
-
-    public void RefreshActionPointsSlider()
-    {
-        m_actionPointsTextChatacter.UpdateMyValue();
-    }
-
-    public void SetMovementPointsObserver(HUDObserverValueGetter observer)
-    {
-        m_movementPointsTextChatacter.m_observer = observer;
-    }
-
-    public void RefreshMovementPointsSlider()
-    {
-        m_movementPointsTextChatacter.UpdateMyValue();
-    }
-
-    #endregion
-
-    public void FillCallbacksSpellButtons(SpellButton.OnClick method, List<int> ids)
-    {
-        m_switchableManager.FillCallbacksSpellButtons(method, ids);
+        m_switchableManager.FillCallbacksAndIconsSpellButtons(method, ids, sprites);
     }
 
     public void SwitchToOtherInfos(HUDObserverValueGetter health, HUDObserverValueGetter pa, HUDObserverValueGetter pm)

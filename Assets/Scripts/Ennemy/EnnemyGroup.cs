@@ -30,11 +30,6 @@ public class EnnemyGroup : MonoBehaviour
 
     #region STATIC
 
-    //public static void MainToFight(EnnemyGroupMain main, ref EnnemyGroupFight fight)
-    //{
-
-    //}
-
     #endregion
 
     #endregion

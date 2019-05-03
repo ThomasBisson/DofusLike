@@ -33,8 +33,8 @@ public class EnnemyGroupMain : EnnemyGroup
 
     public EnnemyGroupMain()
     {
-        m_onHover = DisplayInfoMonster;
-        m_onStopHover = HideInfoMonster;
+        m_onHover = DisplayInfoEnnemy;
+        m_onStopHover = HideInfoEnnemy;
         m_onClicked = GameManager.Instance.m_PlayerManagerMain.CheckIfEnnemyInRange;
     }
 
@@ -66,7 +66,7 @@ public class EnnemyGroupMain : EnnemyGroup
 
     private void OnMouseDown()
     {
-        HideInfoMonster();
+        HideInfoEnnemy();
         if (m_onClicked != null)
             m_onClicked(m_networkIdentity.GetID(), transform);
     }
@@ -86,7 +86,7 @@ public class EnnemyGroupMain : EnnemyGroup
         return true;
     }
 
-    public void DisplayInfoMonster()
+    public void DisplayInfoEnnemy()
     {
         if (m_infoUIDisplaying)
             return;
@@ -98,15 +98,15 @@ public class EnnemyGroupMain : EnnemyGroup
 
         foreach (var ennemy in m_ennemiesMain)
         {
-            names.Add(ennemy.m_ennemyStats.m_name);
-            levels.Add(ennemy.m_ennemyStats.Level);
+            names.Add(ennemy.m_stats.m_name);
+            levels.Add(ennemy.m_stats.Level);
         }
         m_tempInfo = Instantiate(m_infoUIPrefab, m_HUDUIManager.transform).GetComponent<InformationHover>();
         m_tempInfo.Instantiate();
         m_tempInfo.MoveToClickPoint(transform.position, names, levels);
     }
 
-    public void HideInfoMonster()
+    public void HideInfoEnnemy()
     {
         if (m_infoUIDisplaying)
             DestroyImmediate(m_tempInfo.gameObject);

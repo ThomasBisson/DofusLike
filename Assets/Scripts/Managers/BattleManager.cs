@@ -62,7 +62,7 @@ public class BattleManager : MonoBehaviour
 
         foreach (var ennemy in groupMain.m_ennemiesMain)
         {
-            GameObject go = Instantiate((GameObject)Resources.Load("EnnemiesPrefabs/" + ennemy.m_ennemyStats.m_name, typeof(GameObject)), parent);
+            GameObject go = Instantiate((GameObject)Resources.Load("EnnemiesPrefabs/" + ennemy.m_stats.m_name, typeof(GameObject)), parent);
             go.name = ennemy.transform.name;
             EnnemyManagerFight ennemyFight = go.AddComponent<EnnemyManagerFight>();
 

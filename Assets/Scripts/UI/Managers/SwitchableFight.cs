@@ -2,16 +2,22 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using ThomasBisson.Mathematics;
+using DG.Tweening;
 
 public class SwitchableFight : MonoBehaviour
 {
     [SerializeField]
     private SpellsAndControls m_spellsAndControls;
+    public SpellsAndControls SpellAndControlsUI { get { return m_spellsAndControls; } }
     [SerializeField]
     private OthersInfos m_othersInfos;
+    public OthersInfos Others { get { return m_othersInfos; } }
     [SerializeField]
     private TurnInFight m_turnInFight;
+    public TurnInFight TurnFight { get { return m_turnInFight; } }
+
+    [SerializeField]
+    private Image m_leftTopIcon;
 
     private bool m_isInSpellsAndControls = true;
 
@@ -21,7 +27,20 @@ public class SwitchableFight : MonoBehaviour
         
     }
 
+    public void MakeLeftTopIconAppear(Sprite sprite)
+    {
+        m_leftTopIcon.sprite = sprite;
+        m_leftTopIcon.rectTransform.DOLocalMoveX(m_leftTopIcon.rectTransform.localPosition.x + 150, 0.5f).OnComplete(delegate
+        {
+            StartCoroutine(WaitXSecondsIconTopLeft(1));
+        });
+    }
 
+    IEnumerator WaitXSecondsIconTopLeft(float seconds)
+    {
+        yield return new WaitForSeconds(seconds);
+        m_leftTopIcon.rectTransform.DOLocalMoveX(m_leftTopIcon.rectTransform.localPosition.x - 150, 0.5f);
+    }
 
     public void SetEndTurnButton(UnityEngine.Events.UnityAction func)
     {
@@ -41,12 +60,6 @@ public class SwitchableFight : MonoBehaviour
         m_isInSpellsAndControls = false;
 
         m_spellsAndControls.gameObject.SetActive(false);
-        m_othersInfos.SetHealthObserverMonster(health);
-        m_othersInfos.SetActionPointsObserverMonster(pa);
-        m_othersInfos.SetMovementPointsObserverMonster(pm);
-        m_othersInfos.RefreshHealthTextMonster();
-        m_othersInfos.RefreshActionPointsTextMonster();
-        m_othersInfos.RefreshMovementPointsTextMonster();
         m_othersInfos.gameObject.SetActive(true);
     }
 
@@ -71,9 +84,9 @@ public class SwitchableFight : MonoBehaviour
         m_turnInFight.PopulateTurnInFightBar(characters);
     }
 
-    public void FillCallbacksSpellButtons(SpellButton.OnClick method, List<int> ids)
+    public void FillCallbacksAndIconsSpellButtons(SpellButton.OnClick method, List<int> ids, List<Sprite> sprites)
     {
-        m_spellsAndControls.FillCallbacksSpellButtons(method, ids);
+        m_spellsAndControls.FillCallbacksAndIconsSpellButtons(method, ids, sprites);
     }
 
 }

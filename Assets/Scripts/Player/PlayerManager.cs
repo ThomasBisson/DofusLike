@@ -6,56 +6,25 @@ public class PlayerManager : Characters
 {
     #region VARS
 
-    /****** NETWORK ******/
-    protected NetworkIdentity m_networkIdentity;
-
-
-    [SerializeField]
-    protected float m_speed = 5f;
-
-    protected Vector3 m_targetPosition;
-    protected bool m_targetPositionChanged = false;
-
     public Vector2 m_positionArrayMain;
     public Vector2 m_positionArrayFight;
 
-    [SerializeField]
-    [GreyOut]
-    protected Animator m_animator;
-
-    /******** SpellTree ********/
-    protected SpellTree m_spellTree;
-
-    /******** PlayerStats ********/
-    public PlayerStats m_playerStats;
-
     /******** HUD **********/
-    public HUDUIManager m_HUDUIManager { get; private set; }
+    public HUDUIManager m_HUDUIManager;
 
-    
     protected NetworkBattle m_networkBattle;
+
+    /*************************** TEST STRATEGY *******************/
+    public PlayerStrategy m_strategy;
 
     #endregion
 
     #region Unity_METHODS
 
-    public virtual void Awake()
+    protected virtual void Awake()
     {
-        m_animator = GetComponent<Animator>();
-        m_networkIdentity = GetComponent<NetworkIdentity>();
+        base.Awake();
         GetComponent<NetworkTransform>().m_playerManager = this;
-    }
-
-    // Start is called before the first frame update
-    public virtual void Start()
-    {
-
-    }
-
-    // Update is called once per frame
-    public virtual void Update()
-    {
-        HandleMouvement();
     }
 
     #endregion
@@ -63,22 +32,7 @@ public class PlayerManager : Characters
     #region METHODS
 
     #region MOVEMENTS
-    private void HandleMouvement()
-    {
-        if (m_targetPositionChanged)
-        {
-            if (m_targetPosition == transform.position)
-            {
-                m_animator.SetBool("isRunning", false);
-                m_targetPositionChanged = false;
-            }
-            else
-            {
-                var step = m_speed * Time.deltaTime;
-                transform.position = Vector3.MoveTowards(transform.position, m_targetPosition, step);
-            }
-        }
-    }
+    
 
     //TODO : make him go tile by tile from combat
     public virtual void GoNear(Vector3 clickPoint)
@@ -92,20 +46,6 @@ public class PlayerManager : Characters
 
     #region GETTER_SETTER
 
-    public void SetSpellTree(SpellTree spellTree) { m_spellTree = spellTree; }
-
-    public void SetSpellTree(string spellAsJson) {
-        if(m_spellTree == null)
-            m_spellTree = new SpellTree();
-
-        m_spellTree.TranformJsonToSpell(spellAsJson);
-    }
-
-    public void FindHUDManager()
-    {
-        m_HUDUIManager = HUDUIManager.Instance;
-    }
-
     public void SetHUDManager(HUDUIManager hud) { m_HUDUIManager = hud; }
 
     public void FindNetworkBattle()
@@ -113,23 +53,20 @@ public class PlayerManager : Characters
         m_networkBattle = GetComponent<NetworkBattle>();
     }
 
-    //TODO : See if it's not better to serialize stats
-    public void SetPlayerStats(Dictionary<string, object> stats)
+    public void FindIconInResources()
     {
-        m_playerStats = new PlayerStats(this, this.name,
-            System.Convert.ToInt32((stats["baseHealthPoints"])),
-            System.Convert.ToInt32(stats["baseActionPoints"]),
-            System.Convert.ToInt32(stats["baseMovementPoints"]),
-            0, 0, 0, 0);
+        m_icon = Resources.Load<Sprite>("IconCharacter/Players/" + m_stats.m_name);
     }
 
-    public void SetPlayerStats(PlayerStats stats) { m_playerStats = stats; }
+    //public void SetHUDItemsButtons()
+    //{
+    //    //TODO : Make the item go here
+    //}
 
-    public void SetHUDItemsButtons()
-    {
-        //TODO : Make the item go here
-    }
 
+    /******************** TEST STRATEGY ****************/
+    public PlayerMain GetPlayerMain() { return (m_strategy as PlayerMain); }
+    public PlayerFight GetPlayerFight() { return (m_strategy as PlayerFight); }
 
     #endregion
 
@@ -137,7 +74,7 @@ public class PlayerManager : Characters
 
     public static void PlayerMainToPlayerFight(PlayerManagerMain main, ref PlayerManagerFight fight)
     {
-        fight.SetPlayerStats(main.m_playerStats);
+        fight.SetStats(main.m_stats);
         fight.SetSpellTree(main.m_spellTree);
         fight.m_speed = main.m_speed;
         fight.SetHUDManager(main.m_HUDUIManager);
@@ -145,6 +82,7 @@ public class PlayerManager : Characters
         fight.SetHUDSpellButtons();
         fight.m_positionArrayFight = main.m_positionArrayFight;
         fight.m_positionArrayMain = main.m_positionArrayMain;
+        fight.m_icon = main.m_icon;
     }
 
     #endregion

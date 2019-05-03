@@ -6,8 +6,10 @@ public class SwitchableManager : MonoBehaviour
 {
     [SerializeField]
     private SwitchableMain m_switchableMain;
+    public SwitchableMain SwitchableM { get { return m_switchableMain; } }
     [SerializeField]
     private SwitchableFight m_switchableFight;
+    public SwitchableFight SwitchableF { get { return m_switchableFight; } }
 
     private bool m_isCurrentViewMain = true;
 
@@ -52,6 +54,12 @@ public class SwitchableManager : MonoBehaviour
         m_switchableFight.gameObject.SetActive(true);
     }
 
+    public void MakeLeftTopIconAppear(Sprite sprite)
+    {
+        m_switchableFight.MakeLeftTopIconAppear(sprite);
+    }
+
+
     public void SwitchToMain()
     {
         if (m_isCurrentViewMain)
@@ -63,8 +71,8 @@ public class SwitchableManager : MonoBehaviour
         m_switchableMain.gameObject.SetActive(true);
     }
 
-    public void FillCallbacksSpellButtons(SpellButton.OnClick method, List<int> ids)
+    public void FillCallbacksAndIconsSpellButtons(SpellButton.OnClick method, List<int> ids, List<Sprite> sprites)
     {
-        m_switchableFight.FillCallbacksSpellButtons(method, ids);
+        m_switchableFight.FillCallbacksAndIconsSpellButtons(method, ids, sprites);
     }
 }

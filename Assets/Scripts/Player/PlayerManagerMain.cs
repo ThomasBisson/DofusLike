@@ -19,20 +19,20 @@ public class PlayerManagerMain : PlayerManager
 
     #region UNITY_METHODS
 
-    public override void Awake()
+    protected override void Awake()
     {
         base.Awake();
         m_grid = FindObjectOfType<GridMain>();
         DontDestroyOnLoad(this.gameObject);
     }
 
-    public override void Start()
+    protected override void Start()
     {
         base.Start();
         transform.position = m_grid.GetNearestPointOnGrid(transform.position);
     }
 
-    public override void Update()
+    protected override void Update()
     {
         base.Update();
         if (m_networkIdentity.IsControlling())

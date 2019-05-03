@@ -5,11 +5,6 @@ using UnityEngine.UI;
 
 public class ImageUpdate : MonoBehaviour
 {
-    public delegate float ImageObserverValueGetter();
-
-    [HideInInspector]
-    public ImageObserverValueGetter m_observer;
-
     private Image m_image;
 
     void Awake()
@@ -17,9 +12,15 @@ public class ImageUpdate : MonoBehaviour
         m_image = GetComponent<Image>();
     }
 
-    public void UpdateMyValue()
+    public void UpdateMyFillValue(float fill)
     {
         if(m_image != null)
-            m_image.fillAmount = m_observer();
+            m_image.fillAmount = fill;
+    }
+
+    public void UpdateMySpriteValue(Sprite sprite)
+    {
+        if (m_image != null)
+            m_image.sprite = sprite;
     }
 }

@@ -19,27 +19,6 @@ public class TurnInFight : MonoBehaviour
         
     }
 
-    //public void PopulateTurnInFightBar(PlayerManagerFight playerManagerFight, EnnemyGroupFight ennemyGroupFight)
-    //{
-    //    m_iconsTurnInFight.Add(Instantiate<IconTurnInFight>(m_prefabTurnInFight, transform));
-    //    m_iconsTurnInFight[m_iconsTurnInFight.Count - 1].SetObserver(delegate
-    //    {
-    //        return playerManagerFight.m_secondsLeftInTurn;
-    //    });
-    //    m_iconsTurnInFight[m_iconsTurnInFight.Count - 1].UpdateValue();
-
-    //    foreach (var ennemy in ennemyGroupFight.m_ennemiesFight)
-    //    {
-    //        m_iconsTurnInFight.Add(Instantiate<IconTurnInFight>(m_prefabTurnInFight, transform));
-    //        m_iconsTurnInFight[m_iconsTurnInFight.Count - 1].SetObserver(delegate
-    //        {
-    //            return ennemy.m_secondsLeftInTurn;
-    //        });
-    //        m_iconsTurnInFight[m_iconsTurnInFight.Count - 1].UpdateValue();
-    //    }
-
-    //}
-
     public void PopulateTurnInFightBar(List<Characters> characters)
     {
         foreach(var charac in characters)
@@ -48,18 +27,18 @@ public class TurnInFight : MonoBehaviour
 
             if(charac.m_character == Characters.Character.PLAYER)
             {
-                m_iconsTurnInFight[m_iconsTurnInFight.Count - 1].SetObserver(delegate
-                {
-                    return (charac as PlayerManagerFight).GetTimeAsPercent() / 100f;
-                });
+                //m_iconsTurnInFight[m_iconsTurnInFight.Count - 1].SetObserver(delegate
+                //{
+                //    return (charac as PlayerManagerFight).GetTimeAsPercent() / 100f;
+                //});
             } else
             {
-                m_iconsTurnInFight[m_iconsTurnInFight.Count - 1].SetObserver(delegate
-                {
-                    return (charac as EnnemyManagerFight).GetTimeAsPercent() / 100f;
-                });
+                //m_iconsTurnInFight[m_iconsTurnInFight.Count - 1].SetObserver(delegate
+                //{
+                //    return (charac as EnnemyManagerFight).GetTimeAsPercent() / 100f;
+                //});
             }
-            m_iconsTurnInFight[m_iconsTurnInFight.Count - 1].UpdateValue();
+            //m_iconsTurnInFight[m_iconsTurnInFight.Count - 1].UpdateValue();
         }
     }
 

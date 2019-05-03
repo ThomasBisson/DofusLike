@@ -19,25 +19,28 @@ public class Stats
     /****** BASIC STATS ******/
     protected int m_health;
     protected int m_currentHealth;
-    public int Health { get { return m_health; } }
-    public int CurrentHealth { get { return m_currentHealth; } }
+    public int Health { get { return m_health; } set { m_health = value; m_eventsHealth.Invoke(m_health); } }
+    public int CurrentHealth { get { return m_currentHealth; } set { m_currentHealth = value; m_eventsCurrentHealth.Invoke(m_currentHealth); } }
+
+    protected int m_currentShield;
+    public int CurrentShield { get { return m_currentShield; } set { m_currentShield = value; m_eventsCurrentShield.Invoke(m_currentShield); } }
 
     protected int m_actionPoint;
     protected int m_currentActionPoint;
-    public int ActionPoint { get { return m_actionPoint; } }
-    public int CurrentActionPoint { get { return m_currentActionPoint; } }
+    public int ActionPoint { get { return m_actionPoint; } set { m_actionPoint = value; m_eventsActionPoints.Invoke(m_actionPoint); } }
+    public int CurrentActionPoint { get { return m_currentActionPoint; } set { m_currentActionPoint = value; m_eventsCurrentActionPoints.Invoke(m_currentActionPoint); } }
     
     protected int m_movementPoint;
     protected int m_currentMovementPoint;
 
-    public int MovementPoint { get { return m_movementPoint; } }
-    public int CurrentMovementPoint { get { return m_currentMovementPoint; } }
+    public int MovementPoint { get { return m_movementPoint; } set { m_movementPoint = value; m_eventsMovementPoints.Invoke(m_movementPoint); } }
+    public int CurrentMovementPoint { get { return m_currentMovementPoint; } set { m_currentMovementPoint = value; m_eventsCurrentMovementPoints.Invoke(m_currentMovementPoint); } }
 
     /****** Elements stats ******/
-    private int m_FireIntel;
-    private int m_EarthStrenght;
-    private int m_WindAgility;
-    private int m_WaterLuck;
+    protected int m_FireIntel;
+    protected int m_EarthStrenght;
+    protected int m_WindAgility;
+    protected int m_WaterLuck;
 
 
     /****** Peticular Stats ******/
@@ -45,26 +48,37 @@ public class Stats
     public int Level {
         get { return m_level; }
     }
-    public int m_baseXPGiving = 0;
     protected int m_xpNeeded;
     protected int m_currentXP;
 
-    ///****** Basic attack ******/
-    //[Header("Basic attack")]
-    //[SerializeField]
-    //public int m_basicAttackDamage;
-    //[SerializeField]
-    //public float m_basicAttackCooldown;
-    //[SerializeField]
-    //public float m_basicAttackRange;
-
     /****** Actual state ******/
     public StateInFight m_state;
+
+    /****** Events/Observer *******/
+    public enum PossibleStats
+    {
+        Health,
+        CurrentHealth,
+        CurrentShield,
+        PA,
+        CurrentPA,
+        PM,
+        CurrentPM
+    }
+    public delegate void StatEventHandlerInt(int value);
+    public event StatEventHandlerInt m_eventsHealth;
+    public event StatEventHandlerInt m_eventsCurrentHealth;
+    public event StatEventHandlerInt m_eventsCurrentShield;
+    public event StatEventHandlerInt m_eventsActionPoints;
+    public event StatEventHandlerInt m_eventsCurrentActionPoints;
+    public event StatEventHandlerInt m_eventsMovementPoints;
+    public event StatEventHandlerInt m_eventsCurrentMovementPoints;
 
     public Stats(string name, int health, int actionPoints, int movementPoints, int fireintel, int earthstrenght, int windagility, int waterluck)
     {
         m_name = name;
         m_health = health;
+        m_currentShield = 0;
         m_actionPoint = actionPoints;
         m_movementPoint = movementPoints;
         m_FireIntel = fireintel;
@@ -77,47 +91,112 @@ public class Stats
         m_currentMovementPoint = m_movementPoint;
     }
 
-    public bool isDead() { return m_state == StateInFight.DEAD; }
-
-    public virtual void RegenHealth(int health)
+    public void Subscribe(PossibleStats possibleStats, StatEventHandlerInt newObserver)
     {
-        if (m_currentHealth + health > m_health)
-            m_currentHealth = m_health;
-        else
-            m_currentHealth += health;
-    }
-
-
-    public virtual void TakeDamage(int damage)
-    {
-        m_currentHealth -= damage;
-        if (m_currentHealth <= 0)
+        switch(possibleStats)
         {
-            m_currentHealth = 0;
-            m_state = StateInFight.DEAD;
+            case PossibleStats.Health:
+                if (!IsObserverAlreadyInList(m_eventsHealth, newObserver))
+                {
+                    m_eventsHealth += new StatEventHandlerInt(newObserver);
+                    m_eventsHealth.Invoke(m_health);
+                }
+                break;
+            case PossibleStats.CurrentHealth:
+                if (!IsObserverAlreadyInList(m_eventsCurrentHealth, newObserver))
+                    m_eventsCurrentHealth += new StatEventHandlerInt(newObserver);
+                break;
+            case PossibleStats.CurrentShield:
+                if (!IsObserverAlreadyInList(m_eventsCurrentShield, newObserver))
+                    m_eventsCurrentShield += new StatEventHandlerInt(newObserver);
+                break;
+            case PossibleStats.PA:
+                if (!IsObserverAlreadyInList(m_eventsActionPoints, newObserver))
+                    m_eventsActionPoints += new StatEventHandlerInt(newObserver);
+                break;
+            case PossibleStats.CurrentPA:
+                if (!IsObserverAlreadyInList(m_eventsCurrentActionPoints, newObserver))
+                    m_eventsCurrentActionPoints += new StatEventHandlerInt(newObserver);
+                break;
+            case PossibleStats.PM:
+                if (!IsObserverAlreadyInList(m_eventsMovementPoints, newObserver))
+                    m_eventsMovementPoints += new StatEventHandlerInt(newObserver);
+                break;
+            case PossibleStats.CurrentPM:
+                if (!IsObserverAlreadyInList(m_eventsCurrentMovementPoints, newObserver))
+                    m_eventsCurrentMovementPoints += new StatEventHandlerInt(newObserver);
+                break;
         }
     }
 
-    public virtual void ApplyDamage(Stats stats, int damage)
+    private bool IsObserverAlreadyInList(StatEventHandlerInt list, StatEventHandlerInt newObserver)
     {
-        stats.TakeDamage(damage);
+        foreach (var existingHandler in list.GetInvocationList() )
+            if (existingHandler == newObserver) //If it doesn't work use : if(objA.Method.Name == objB.Method.Name && objA.Target.GetType().FullName == objB.Target.GetType().FullName) OR Delegate.Equals(objA, objB)
+                return true;
+        return false;
     }
 
-    public virtual bool UseActionPoint(int actionPointsUsed)
-    {
-        if (m_currentActionPoint < actionPointsUsed)
-            return false;
+    public bool isDead() { return m_state == StateInFight.DEAD; }
 
-        m_currentActionPoint -= actionPointsUsed;
-        return true;
-    }
+    //public virtual void UpdateHealth(int health) { m_health = health; }
+    //public virtual void UpdateCurrentHealth(int health) { m_currentHealth = health; }
 
-    public virtual bool UseMovementPoint(int movementPointsUsed)
-    {
-        if (m_currentMovementPoint < movementPointsUsed)
-            return false;
+    //public virtual void UpdateShield(int shield) { m_currentShield = shield; }
 
-        m_currentMovementPoint -= movementPointsUsed;
-        return true;
-    }
+    //public virtual void UpdateActionPoints(int pa) { m_actionPoint = pa; }
+    //public virtual void UpdateCurrentActionPoints(int pa) { m_currentActionPoint = pa; }
+
+    //public virtual void UpdateMovementPoints(int pm) { m_movementPoint = pm; }
+    //public virtual void UpdateCurrentMovementPoints(int pm) { m_currentMovementPoint = pm; }
+
+    //public virtual bool HasEnoughtActionPoints(int pa) { return m_currentActionPoint >= pa; }
+    //public virtual bool HasEnoughtMovementPoints(int pm) { return m_currentMovementPoint >= pm; }
 }
+
+
+//public virtual void RegenHealth(int health)
+//{
+//    if (m_currentHealth + health > m_health)
+//        m_currentHealth = m_health;
+//    else
+//        m_currentHealth += health;
+//}
+
+//public virtual void TakeDamage(int damage)
+//{
+//    m_currentShield -= damage;
+//    if (m_currentShield < 0)
+//    {
+//        m_currentHealth -= Mathf.Abs(m_currentShield);
+//        m_currentShield = 0;
+//        if (m_currentHealth <= 0)
+//        {
+//            m_currentHealth = 0;
+//            m_state = StateInFight.DEAD;
+//        }
+//    }
+//}
+
+//public virtual bool UseActionPoint(int actionPointsUsed)
+//{
+//    if (m_currentActionPoint < actionPointsUsed)
+//        return false;
+
+//    m_currentActionPoint -= actionPointsUsed;
+//    return true;
+//}
+
+//public virtual bool UseMovementPoint(int movementPointsUsed)
+//{
+//    if (m_currentMovementPoint < movementPointsUsed)
+//        return false;
+
+//    m_currentMovementPoint -= movementPointsUsed;
+//    return true;
+//}
+
+//public virtual void GainShield(int shieldPoints)
+//{
+//    m_currentShield += shieldPoints;
+//}

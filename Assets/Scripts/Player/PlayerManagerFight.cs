@@ -14,25 +14,20 @@ public class PlayerManagerFight : PlayerManager
 
     private int m_spellUsedID;
 
-    public int m_maxSecondsAllowed = 0;
-    public int m_secondsLeftInTurn = 0;
-
-
-
     #endregion
 
     #region UNITY_METHODS
 
-    public override void Awake()
+    protected override void Awake()
     {
         base.Awake();
         m_grid = FindObjectOfType<GridFight>();
     }
 
-    public override void Start()
+    protected override void Start()
     {
         base.Start();
-        m_grid.PlayerManagerFight = this;
+        m_grid.m_PlayerManagerFight = this;
         transform.position = m_grid.Map[(int)m_positionArrayFight.x, (int)m_positionArrayFight.y].transform.position;
         m_secondsLeftInTurn = 0;
         m_HUDUIManager.SetEndTurnButton(() =>
@@ -40,11 +35,12 @@ public class PlayerManagerFight : PlayerManager
             if (m_secondsLeftInTurn >= 0)
                 m_networkBattle.SendEndTurnNotification();
         });
+        m_networkBattle.SendBattleReadyInClient();
     }
 
-    public override void Update()
+    protected override void Update()
     {
-        HandleMouvement();
+        base.Update();
     }
 
     #endregion
@@ -53,28 +49,11 @@ public class PlayerManagerFight : PlayerManager
 
     #region MOVEMENTS
 
-    private void HandleMouvement()
-    {
-        if (m_targetPositionChanged)
-        {
-            if (m_targetPosition == transform.position)
-            {
-                m_animator.SetBool("isRunning", false);
-                m_targetPositionChanged = false;
-            }
-            else
-            {
-                var step = m_speed * Time.deltaTime;
-                transform.position = Vector3.MoveTowards(transform.position, m_targetPosition, step);
-            }
-        }
-    }
-
     public bool CanMove(int movementPointUsed)
     {
         if (m_secondsLeftInTurn <= 0)
             return false;
-        return m_playerStats.CurrentMovementPoint >= movementPointUsed;
+        return m_stats.CurrentMovementPoint >= movementPointUsed;
     }
 
     public void RandomizePlayerPosition(bool mustTeleportPlayer)
@@ -92,6 +71,12 @@ public class PlayerManagerFight : PlayerManager
         m_targetPositionChanged = true;
         m_animator.SetBool("isRunning", true);
         transform.LookAt(m_targetPosition);
+    }
+
+    public virtual void NewDestination(Vector2 newPos)
+    {
+        m_positionArrayFight = newPos;
+        GoNear(m_grid.Map[(int)newPos.x, (int)newPos.y].transform.position);
     }
 
     #endregion
@@ -118,10 +103,19 @@ public class PlayerManagerFight : PlayerManager
     public void SetHUDSpellButtons()
     {
         List<int> ids = new List<int>();
-        for (int i = 0; i < m_spellTree.GetSpells().Count; i++)
-            ids.Add(i);
+        List<Sprite> sprites = new List<Sprite>();
 
-        m_HUDUIManager.FillCallbacksSpellButtons(HandleSpellButtonClick, ids);
+        for (int i = 0; i < m_spellTree.GetSpells().Count; i++)
+        {
+            ids.Add(i);
+            sprites.Add(Resources.Load<Sprite>("SpellsIcons/" + m_spellTree.GetSpells()[i].name));
+            if(sprites[i] == null)
+            {
+                Debug.Log("Image null");
+            }
+        }
+
+        m_HUDUIManager.FillCallbacksAndIconsSpellButtons(HandleSpellButtonClick, ids, sprites);
     }
 
     public void TryToActivateSpell(Vector2 XY)
@@ -149,18 +143,11 @@ public class PlayerManagerFight : PlayerManager
 
     #endregion
 
-    #region GETTER_SETTER
+    #region NETWORK
 
-    public void SetTime(int maxSecondsAllowed, int secondsLeft)
+    public void SendMovementInFightMessage(Vector2 XY)
     {
-        m_maxSecondsAllowed = maxSecondsAllowed;
-        m_secondsLeftInTurn = secondsLeft;
-        m_HUDUIManager.UpdateTime();
-    }
-
-    public float GetTimeAsPercent()
-    {
-        return ThomasBisson.Mathematics.MathsUtils.PercentValueFromAnotherValue((float)m_secondsLeftInTurn, (float)m_maxSecondsAllowed);
+        m_networkBattle.SendPositionBattle(XY);
     }
 
     #endregion

@@ -68,7 +68,7 @@ public class NetworkTransform : MonoBehaviour
         m_player.positionArrayMain.Set(m_playerManager.m_positionArrayMain);
 
         //Update player fight position
-        m_player.positionArrayFight.Set(m_playerManager.m_positionArrayFight);
+        //m_player.positionArrayFight.Set(m_playerManager.m_positionArrayFight);
 
         var jsonObject = JsonConvert.SerializeObject(m_player);
 

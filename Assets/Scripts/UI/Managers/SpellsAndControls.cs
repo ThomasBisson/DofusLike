@@ -23,7 +23,7 @@ public class SpellsAndControls : MonoBehaviour
     #region METHODS
 
 
-    public void FillCallbacksSpellButtons(SpellButton.OnClick method, List<int> ids)
+    public void FillCallbacksAndIconsSpellButtons(SpellButton.OnClick method, List<int> ids, List<Sprite> sprites)
     {
         //TODO : See what I wanted to do here ????????
 
@@ -38,13 +38,10 @@ public class SpellsAndControls : MonoBehaviour
         //Debug.Log("spells : " + m_spellButtons.Count);
 
         for (int i = 0; i < ids.Count; i++)
+        {
             m_spellButtons[i].SetOnClick(method, ids[i]);
-    }
-
-
-    public void SetObserverImageSecondsInTurn(ImageUpdate.ImageObserverValueGetter observer)
-    {
-        m_imageSecondsInTurn.m_observer = observer;
+            m_spellButtons[i].SetIcon(sprites[i]);
+        }
     }
 
     public void SetEndTurnButton(UnityEngine.Events.UnityAction func)

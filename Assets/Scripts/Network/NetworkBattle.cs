@@ -20,6 +20,17 @@ public class NetworkBattle : MonoBehaviour
         m_networkIdentity.GetSocket().socketManagerRef.Socket.Emit("TryToHitSpell", jsonObject);
     }
 
+    public void SendBattleReadyInClient()
+    {
+        m_networkIdentity.GetSocket().socketManagerRef.Socket.Emit("BattleReadyInClient");
+    }
+
+    public void SendPositionBattle(Vector2 XY)
+    {
+        var jsonObject = "{ \"posInBattle\" : { \"x\" : " + XY.x + ", \"y\" : " + XY.y + " } }";
+        m_networkIdentity.GetSocket().socketManagerRef.Socket.Emit("TryToMove", jsonObject);
+    }
+
     public void SendEndTurnNotification()
     {
         m_networkIdentity.GetSocket().socketManagerRef.Socket.Emit("EndTurn");

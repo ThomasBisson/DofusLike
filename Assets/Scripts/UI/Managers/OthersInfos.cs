@@ -24,44 +24,4 @@ public class OthersInfos : MonoBehaviour
     {
         
     }
-
-    public void SetHealthObserverMonster(HUDObserverValueGetter observer)
-    {
-        m_health.m_observer = observer;
-    }
-
-    public void RefreshHealthTextMonster()
-    {
-        m_health.UpdateMyValue();
-    }
-
-    public void SetShieldObserverMonster(HUDObserverValueGetter observer)
-    {
-        m_shield.m_observer = observer;
-    }
-
-    public void RefreshShieldTextMonster()
-    {
-        m_shield.UpdateMyValue();
-    }
-
-    public void SetActionPointsObserverMonster(HUDObserverValueGetter observer)
-    {
-        m_actionPoints.m_observer = observer;
-    }
-
-    public void RefreshActionPointsTextMonster()
-    {
-        m_actionPoints.UpdateMyValue();
-    }
-
-    public void SetMovementPointsObserverMonster(HUDObserverValueGetter observer)
-    {
-        m_movementPoints.m_observer = observer;
-    }
-
-    public void RefreshMovementPointsTextMonster()
-    {
-        m_movementPoints.UpdateMyValue();
-    }
 }

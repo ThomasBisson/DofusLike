@@ -8,18 +8,14 @@ public class SliderUpdate : MonoBehaviour
 
     private Slider m_slider;
 
-    [HideInInspector]
-    public HUDObserverValueGetter m_observer;
-
-    // Use this for initialization
     void Start()
     {
         m_slider = GetComponent<Slider>();
     }
 
-    public void UpdateMyValue()
+    public void UpdateMyValue(float value)
     {
-        m_slider.value = m_observer();
+        m_slider.value = value;
     }
 
     public void SetMaxValueSlider(float maxValue)
