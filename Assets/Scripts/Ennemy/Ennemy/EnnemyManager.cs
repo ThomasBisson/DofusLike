@@ -4,15 +4,31 @@ using UnityEngine;
 
 public class EnnemyManager : Characters
 {
+    #region Vars
 
     [Header("Movement")]
     public Vector2 m_positionArrayFight;
 
     public EnnemyGroup m_ennemyGroup;
 
-    public EnnemyStrategy m_strategy;
 
-    #region UNITY_METHODS
+    /************** Strategy *************/
+    public enum PossibleStrategy
+    {
+        Fight,
+        Main
+    }
+
+    private EnnemyStrategy m_strategy;
+
+    /************** Strategy fight Mono vars ***************/
+    [SerializeField]
+    [GreyOut]
+    private GridFight m_gridFight;
+
+    #endregion
+
+    #region UnityMethods
 
     protected override void Awake()
     {
@@ -22,7 +38,6 @@ public class EnnemyManager : Characters
     protected override void Start()
     {
         base.Start();
-        m_strategy = new EnnemyMain(this);
     }
 
     protected override void Update()
@@ -30,39 +45,60 @@ public class EnnemyManager : Characters
         base.Update();
     }
 
+    private void OnMouseEnter()
+    {
+        m_strategy.OnMouseEnter();
+    }
+
+    private void OnMouseExit()
+    {
+        m_strategy.OnMouseExit();
+    }
+
     #endregion
 
 
-    #region METHODS
+    #region Methods
 
-    #region GETTER_SETTER
+    #region GetterSetter
 
     public void FindIconInResources()
     {
+        Debug.Log("IconCharacter/Ennemies/" + m_stats.m_name);
         m_icon = Resources.Load<Sprite>("IconCharacter/Ennemies/" + m_stats.m_name);
     }
 
-    //public void UpdateEnnemyStats(int currentHealth, int currentShield, int currentPA, int currentPM)
-    //{
-    //    m_ennemyStats.UpdateCurrentHealth(currentHealth);
-    //    m_ennemyStats.UpdateShield(currentShield);
-    //    m_ennemyStats.UpdateCurrentActionPoints(currentPA);
-    //    m_ennemyStats.UpdateCurrentMovementPoints(currentPM);
-    //}
+    public EnnemyMain GetEnnemyMain() { return (m_strategy as EnnemyMain); }
+    public EnnemyFight GetEnnemyFight() { return (m_strategy as EnnemyFight); }
 
     #endregion
 
+    #region Strategy
 
-    #region STATIC
+    public void ChangeStrategy(PossibleStrategy strategy)
+    {
+        switch (strategy)
+        {
+            case PossibleStrategy.Main:
+                m_strategy = new EnnemyMain(this);
+                GetEnnemyMain().Start();
+                break;
 
-    //public static void EnnemyMainToEnnemyFight(EnnemyManagerMain main, ref EnnemyManagerFight fight)
-    //{
-    //    fight.SetStats(main.m_stats);
-    //    fight.SetSpellTree(main.m_spellTree);
-    //    fight.m_speed = main.m_speed;
-    //    fight.m_positionArrayFight = main.m_positionArrayFight;
-    //    fight.m_icon = main.m_icon;
-    //}
+            case PossibleStrategy.Fight:
+                m_strategy = new EnnemyFight(this);
+                m_gridFight = FindObjectOfType<GridFight>();
+                GetEnnemyFight().SetGetterCallbacks(
+                    () => {
+                        return m_gridFight;
+                    },
+                    () => {
+                        return transform;
+                    }
+                );
+                GetEnnemyFight().Start();
+                break;
+        }
+    }
 
     #endregion
 

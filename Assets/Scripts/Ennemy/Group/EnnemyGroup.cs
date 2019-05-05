@@ -4,24 +4,37 @@ using UnityEngine;
 
 public class EnnemyGroup : MonoBehaviour
 {
-    #region VARS
+    #region Vars
 
-    public NetworkIdentity m_networkIdentity;
+    private NetworkIdentity m_networkIdentity;
 
-    public HUDUIManager m_HUDUIManager;
+    private HUDUIManager m_HUDUIManager;
 
     private bool m_isInFight;
 
-    public List<EnnemyManager> m_ennemies = new List<EnnemyManager>();
+    private List<EnnemyManager> m_ennemies = new List<EnnemyManager>();
+    public List<EnnemyManager> Ennemies
+    {
+        get { return m_ennemies; }
+    }
 
-    public Vector2 m_position;
+    private Vector2 m_position;
+    public Vector2 Position {
+        get
+        {
+            return m_position;
+        }
+        set
+        {
+            m_position = value;
+            transform.position = m_grid.GetNearestPointOnGrid(new Vector3(m_position.x, 0, m_position.y));
+        }
+    }
 
     public delegate void OnHover();
     public delegate void OnStopHover();
-    public delegate void OnClicked(string id, Transform position);
-    public OnHover m_onHover;
-    public OnStopHover m_onStopHover;
-    public OnClicked m_onClicked;
+    private event OnHover m_onHover;
+    private event OnStopHover m_onStopHover;
 
     [SerializeField]
     [GreyOut]
@@ -33,22 +46,20 @@ public class EnnemyGroup : MonoBehaviour
 
     #endregion
 
-    #region UNITY_METHODS
+    #region UnityMethods
 
     public void Awake()
     {
         m_networkIdentity = GetComponent<NetworkIdentity>();
         m_HUDUIManager = HUDUIManager.Instance;
+        m_grid = FindObjectOfType<GridMain>();
     }
 
     public void Start()
     {
-        transform.position = m_grid.GetNearestPointOnGrid(new Vector3(m_position.x, 0, m_position.y));
-        ActivateMainMode();
-
     }
 
-    void OnMouseOver()
+    void OnMouseEnter()
     {
         if (m_onHover != null)
             m_onHover();
@@ -60,24 +71,36 @@ public class EnnemyGroup : MonoBehaviour
             m_onStopHover();
     }
 
-    private void OnMouseDown()
-    {
-        HideInfoEnnemies();
-        if (m_onClicked != null)
-            m_onClicked(m_networkIdentity.GetID(), transform);
-    }
-
     #endregion
 
-    #region METHODS
+    #region Methods
 
+    public void ActivateFightMode()
+    {
+        m_isInFight = true;
+        RemoveMainMouseEvents();
+    }
+
+    public void ActivateMainMode()
+    {
+        m_isInFight = false;
+        m_grid = FindObjectOfType<GridMain>();
+        m_infoUIPrefab = Resources.Load<GameObject>("UIPrefabs/infoEnnemy");
+        SetMainMouseEvents();
+    }
+
+    public bool AddToEnnemyGroup(EnnemyManager ennemy)
+    {
+        m_ennemies.Add(ennemy);
+        ennemy.m_ennemyGroup = this;
+        return true;
+    }
+
+    #region Events
     public void SetMainMouseEvents()
     {
         m_onHover = DisplayInfoEnnemies;
         m_onStopHover = HideInfoEnnemies;
-        if (GameManager.Instance.m_playerManager.GetPlayerMain() == null)
-            Debug.Log("C'est null");
-        m_onClicked = GameManager.Instance.m_playerManager.GetPlayerMain().CheckIfEnnemyInRange;
     }
 
     public void RemoveMainMouseEvents()
@@ -87,27 +110,9 @@ public class EnnemyGroup : MonoBehaviour
         m_onStopHover = null;
     }
 
-    public void ActivateFightMode() {
-        m_isInFight = true;
-        RemoveMainMouseEvents();
-    }
+    #endregion
 
-    public void ActivateMainMode() {
-        m_isInFight = false;
-        m_grid = FindObjectOfType<GridMain>();
-        m_infoUIPrefab = Resources.Load<GameObject>("UIPrefabs/infoEnnemy");
-        SetMainMouseEvents();
-    }
-
-    public bool AddToEnnemyGroup(EnnemyManager ennemy)
-    {
-        if (ennemy.m_ennemyGroup != null)
-            return false;
-
-        m_ennemies.Add(ennemy);
-        ennemy.m_ennemyGroup = this;
-        return true;
-    }
+    #region UI
 
     public void DisplayInfoEnnemies()
     {
@@ -143,6 +148,8 @@ public class EnnemyGroup : MonoBehaviour
 
         m_infoUIDisplaying = false;
     }
+
+    #endregion
 
     #endregion
 

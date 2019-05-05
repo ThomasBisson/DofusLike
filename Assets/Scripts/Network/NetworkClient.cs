@@ -324,9 +324,13 @@ public class NetworkClient : MonoBehaviour
             }
         });
 
+        socketManagerRef.Socket.On("SpellHasHit", (socket, packet, args) =>
+        {
+            Debug.Log(packet);
+        });
+
 
         socketManagerRef.Socket.On("UpdateTime", (socket, packet, args) => {
-            Debug.Log(packet);
             var data = args[0] as Dictionary<string, object>;
             var character = m_serverObjects[data["id"] as string].GetComponent<Characters>();
             if(character.m_character == Characters.Character.PLAYER)

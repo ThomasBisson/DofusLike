@@ -6,9 +6,9 @@ using UnityEngine.UI;
 
 public class SpellButton : MonoBehaviour
 {
-    public delegate void OnClick(int id);
+    public delegate void OnClick(string id);
 
-    public int m_spellIDInSpellList;
+    public string m_spellID;
     public OnClick m_actionOnClick;
 
     public Button m_button { get; private set; }
@@ -19,14 +19,14 @@ public class SpellButton : MonoBehaviour
         m_button = GetComponent<Button>();
         m_button.onClick.AddListener(delegate
         {
-            m_actionOnClick(m_spellIDInSpellList);
+            m_actionOnClick(m_spellID);
         });
         m_image = GetComponent<Image>();
     }
 
-    public void SetOnClick(OnClick method, int idInList)
+    public void SetOnClick(OnClick method, string id)
     {
-        m_spellIDInSpellList = idInList;
+        m_spellID = id;
         m_actionOnClick = method;
     }
 

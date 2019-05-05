@@ -7,9 +7,14 @@ public class Spell
 {
     public string _id;
     public string name;
-    public float actionPointConsuption;
+    public float actionPointsConsuption;
     public float damage;
     public float range;
     public float explosiveRange;
+    public float shield;
+    public float shieldDuration;
     public float cooldown;
+    public string animationKind;
+
+    public Sprite icon;
 }

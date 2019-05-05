@@ -45,21 +45,6 @@ public class HUDUIManager : MonoBehaviour
     {
     }
 
-    public void FillCallbacksAndIconsSpellButtons(SpellButton.OnClick method, List<int> ids, List<Sprite> sprites)
-    {
-        m_switchableManager.FillCallbacksAndIconsSpellButtons(method, ids, sprites);
-    }
-
-    public void SwitchToOtherInfos(HUDObserverValueGetter health, HUDObserverValueGetter pa, HUDObserverValueGetter pm)
-    {
-        m_switchableManager.SwitchToOtherInfos(health, pa, pm);
-    }
-
-    public void SwitchToSpellsAndControls()
-    {
-        m_switchableManager.SwitchToSpellsAndControls();
-    }
-
     public void SwitchToMain()
     {
         m_switchableManager.SwitchToMain();

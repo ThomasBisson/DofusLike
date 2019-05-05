@@ -91,7 +91,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_parent: {fileID: 3565894575359953375}
-  m_monsterInfo: {fileID: 7252603317618079973, guid: 74b43a110832bdd46b062504ad14e479,
+  m_ennemyInfo: {fileID: 7252603317618079973, guid: 74b43a110832bdd46b062504ad14e479,
     type: 3}
 --- !u!114 &4546785370847505439
 MonoBehaviour:

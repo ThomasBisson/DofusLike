@@ -4,43 +4,36 @@ using UnityEngine;
 
 public class EnnemyFight : EnnemyStrategy
 {
-    [SerializeField]
-    [GreyOut]
-    private GridFight m_grid;
+    public delegate GridFight GetGridFight();
+    private GetGridFight m_getGridFight;
 
-    public delegate void OnHover();
-    public delegate void OnStopHover();
-    public OnHover m_onHover;
-    public OnStopHover m_onStopHover;
-
+    public delegate Transform GetTransform();
+    private GetTransform m_getTransform;
 
     public EnnemyFight(EnnemyManager ennemy) : base(ennemy)
     {
     }
 
-    public void Awake()
+    public void SetGetterCallbacks(GetGridFight getGridFight, GetTransform getTransform)
     {
-        m_grid = FindObjectOfType<GridFight>();
+        m_getGridFight = getGridFight;
+        m_getTransform = getTransform;
     }
 
-    public void Start()
+    public override void Start()
     {
-        transform.position = m_grid.Map[(int)m_ennemyManager.m_positionArrayFight.x, (int)m_ennemyManager.m_positionArrayFight.y].transform.position;
-        m_onHover = ShowInfoEnnemy;
-        m_onStopHover = HideInfoEnnemy;
+        m_getTransform().position = m_getGridFight().Map[(int)m_ennemyManager.m_positionArrayFight.x, (int)m_ennemyManager.m_positionArrayFight.y].transform.position;
     }
 
 
-    void OnMouseOver()
+    public override void OnMouseEnter()
     {
-        if (m_onHover != null)
-            m_onHover();
+        ShowInfoEnnemy();
     }
 
-    void OnMouseExit()
+    public override void OnMouseExit()
     {
-        if (m_onStopHover != null)
-            m_onStopHover();
+        HideInfoEnnemy();
     }
 
     #region METHODS
@@ -49,13 +42,15 @@ public class EnnemyFight : EnnemyStrategy
 
     private void ShowInfoEnnemy()
     {
-        //m_stats.SetObservers();
+        HUDUIManager.Instance.SwitchableMana.SwitchableF.SwitchToOtherInfos(m_ennemyManager);
     }
 
     private void HideInfoEnnemy()
     {
-        //HUDUIManager.Instance.SwitchToSpellsAndControls();
+        HUDUIManager.Instance.SwitchableMana.SwitchableF.SwitchToSpellsAndControls();
     }
+
+
 
     #endregion
 

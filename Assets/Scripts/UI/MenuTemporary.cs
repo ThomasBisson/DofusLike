@@ -5,6 +5,8 @@ using UnityEngine.SceneManagement;
 
 public class MenuTemporary : MonoBehaviour
 {
+    private bool m_isAlreadyGoing = false;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -13,6 +15,11 @@ public class MenuTemporary : MonoBehaviour
 
     public void GoToMainScene()
     {
+        if (m_isAlreadyGoing)
+            return;
+
+        m_isAlreadyGoing = true;
+
         SceneManager.LoadSceneAsync("HUD", LoadSceneMode.Additive);
         SceneManager.LoadSceneAsync("Main", LoadSceneMode.Additive);
         StartCoroutine(WaitSceneIsLoaded());

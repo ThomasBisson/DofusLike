@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -19,22 +20,22 @@ public class Stats
     /****** BASIC STATS ******/
     protected int m_health;
     protected int m_currentHealth;
-    public int Health { get { return m_health; } set { m_health = value; m_eventsHealth.Invoke(m_health); } }
-    public int CurrentHealth { get { return m_currentHealth; } set { m_currentHealth = value; m_eventsCurrentHealth.Invoke(m_currentHealth); } }
+    public int Health { get { return m_health; } set { m_health = value; if (m_eventsHealth != null) { m_eventsHealth.Invoke(m_health); } } }
+    public int CurrentHealth { get { return m_currentHealth; } set { m_currentHealth = value; if (m_eventsCurrentHealth != null) { m_eventsCurrentHealth.Invoke(m_currentHealth); } } }
 
     protected int m_currentShield;
-    public int CurrentShield { get { return m_currentShield; } set { m_currentShield = value; m_eventsCurrentShield.Invoke(m_currentShield); } }
+    public int CurrentShield { get { return m_currentShield; } set { m_currentShield = value; if (m_eventsCurrentShield != null) { m_eventsCurrentShield.Invoke(m_currentShield); } } }
 
     protected int m_actionPoint;
     protected int m_currentActionPoint;
-    public int ActionPoint { get { return m_actionPoint; } set { m_actionPoint = value; m_eventsActionPoints.Invoke(m_actionPoint); } }
-    public int CurrentActionPoint { get { return m_currentActionPoint; } set { m_currentActionPoint = value; m_eventsCurrentActionPoints.Invoke(m_currentActionPoint); } }
+    public int ActionPoint { get { return m_actionPoint; } set { m_actionPoint = value; if (m_eventsActionPoints != null) { m_eventsActionPoints.Invoke(m_actionPoint); } } }
+    public int CurrentActionPoint { get { return m_currentActionPoint; } set { m_currentActionPoint = value; if (m_eventsCurrentActionPoints != null) { m_eventsCurrentActionPoints.Invoke(m_currentActionPoint); } } }
     
     protected int m_movementPoint;
     protected int m_currentMovementPoint;
 
-    public int MovementPoint { get { return m_movementPoint; } set { m_movementPoint = value; m_eventsMovementPoints.Invoke(m_movementPoint); } }
-    public int CurrentMovementPoint { get { return m_currentMovementPoint; } set { m_currentMovementPoint = value; m_eventsCurrentMovementPoints.Invoke(m_currentMovementPoint); } }
+    public int MovementPoint { get { return m_movementPoint; } set { m_movementPoint = value; if (m_eventsMovementPoints != null) { m_eventsMovementPoints.Invoke(m_movementPoint); } } }
+    public int CurrentMovementPoint { get { return m_currentMovementPoint; } set { m_currentMovementPoint = value; if (m_eventsCurrentMovementPoints != null) { m_eventsCurrentMovementPoints.Invoke(m_currentMovementPoint); } } }
 
     /****** Elements stats ******/
     protected int m_FireIntel;
@@ -66,13 +67,13 @@ public class Stats
         CurrentPM
     }
     public delegate void StatEventHandlerInt(int value);
-    public event StatEventHandlerInt m_eventsHealth;
-    public event StatEventHandlerInt m_eventsCurrentHealth;
-    public event StatEventHandlerInt m_eventsCurrentShield;
-    public event StatEventHandlerInt m_eventsActionPoints;
-    public event StatEventHandlerInt m_eventsCurrentActionPoints;
-    public event StatEventHandlerInt m_eventsMovementPoints;
-    public event StatEventHandlerInt m_eventsCurrentMovementPoints;
+    protected event StatEventHandlerInt m_eventsHealth;
+    protected event StatEventHandlerInt m_eventsCurrentHealth;
+    protected event StatEventHandlerInt m_eventsCurrentShield;
+    protected event StatEventHandlerInt m_eventsActionPoints;
+    protected event StatEventHandlerInt m_eventsCurrentActionPoints;
+    protected event StatEventHandlerInt m_eventsMovementPoints;
+    protected event StatEventHandlerInt m_eventsCurrentMovementPoints;
 
     public Stats(string name, int health, int actionPoints, int movementPoints, int fireintel, int earthstrenght, int windagility, int waterluck)
     {
@@ -96,64 +97,146 @@ public class Stats
         switch(possibleStats)
         {
             case PossibleStats.Health:
-                if (!IsObserverAlreadyInList(m_eventsHealth, newObserver))
+                if (!IsObserverInList(m_eventsHealth, newObserver))
                 {
-                    m_eventsHealth += new StatEventHandlerInt(newObserver);
+                    m_eventsHealth += newObserver;
                     m_eventsHealth.Invoke(m_health);
                 }
                 break;
             case PossibleStats.CurrentHealth:
-                if (!IsObserverAlreadyInList(m_eventsCurrentHealth, newObserver))
+                if (!IsObserverInList(m_eventsCurrentHealth, newObserver))
                 {
-                    m_eventsCurrentHealth += new StatEventHandlerInt(newObserver);
+                    m_eventsCurrentHealth += newObserver;
                     m_eventsCurrentHealth.Invoke(m_currentHealth);
                 }
                 break;
             case PossibleStats.CurrentShield:
-                if (!IsObserverAlreadyInList(m_eventsCurrentShield, newObserver))
+                if (!IsObserverInList(m_eventsCurrentShield, newObserver))
                 {
-                    m_eventsCurrentShield += new StatEventHandlerInt(newObserver);
+                    m_eventsCurrentShield += newObserver;
                     m_eventsCurrentShield.Invoke(m_currentShield);
                 }
                 break;
             case PossibleStats.PA:
-                if (!IsObserverAlreadyInList(m_eventsActionPoints, newObserver))
+                if (!IsObserverInList(m_eventsActionPoints, newObserver))
                 {
-                    m_eventsActionPoints += new StatEventHandlerInt(newObserver);
+                    m_eventsActionPoints += newObserver;
                     m_eventsActionPoints.Invoke(m_actionPoint);
                 }
                 break;
             case PossibleStats.CurrentPA:
-                if (!IsObserverAlreadyInList(m_eventsCurrentActionPoints, newObserver))
+                if (!IsObserverInList(m_eventsCurrentActionPoints, newObserver))
                 {
-                    m_eventsCurrentActionPoints += new StatEventHandlerInt(newObserver);
+                    m_eventsCurrentActionPoints += newObserver;
                     m_eventsCurrentActionPoints.Invoke(m_currentActionPoint);
                 }
                 break;
             case PossibleStats.PM:
-                if (!IsObserverAlreadyInList(m_eventsMovementPoints, newObserver))
+                if (!IsObserverInList(m_eventsMovementPoints, newObserver))
                 {
-                    m_eventsMovementPoints += new StatEventHandlerInt(newObserver);
+                    m_eventsMovementPoints += newObserver;
                     m_eventsMovementPoints.Invoke(m_movementPoint);
                 }
                 break;
             case PossibleStats.CurrentPM:
-                if (!IsObserverAlreadyInList(m_eventsCurrentMovementPoints, newObserver))
+                if (!IsObserverInList(m_eventsCurrentMovementPoints, newObserver))
                 {
-                    m_eventsCurrentMovementPoints += new StatEventHandlerInt(newObserver);
+                    m_eventsCurrentMovementPoints += newObserver;
                     m_eventsCurrentMovementPoints.Invoke(m_currentMovementPoint);
                 }
                 break;
         }
     }
 
-    private bool IsObserverAlreadyInList(StatEventHandlerInt list, StatEventHandlerInt newObserver)
+    public void UnSubscribe(PossibleStats possibleStats, StatEventHandlerInt observerToRemove)
+    {
+        switch (possibleStats)
+        {
+            case PossibleStats.Health:
+                if (IsObserverInList(m_eventsHealth, observerToRemove))
+                {
+                    m_eventsHealth -= observerToRemove;
+                    m_eventsHealth.Invoke(m_health);
+                }
+                break;
+            case PossibleStats.CurrentHealth:
+                if (IsObserverInList(m_eventsCurrentHealth, observerToRemove))
+                {
+                    m_eventsCurrentHealth -= observerToRemove;
+                }
+                break;
+            case PossibleStats.CurrentShield:
+                if (IsObserverInList(m_eventsCurrentShield, observerToRemove))
+                {
+                    m_eventsCurrentShield -= observerToRemove;
+                }
+                break;
+            case PossibleStats.PA:
+                if (IsObserverInList(m_eventsActionPoints, observerToRemove))
+                {
+                    m_eventsActionPoints -= observerToRemove;
+                }
+                break;
+            case PossibleStats.CurrentPA:
+                if (IsObserverInList(m_eventsCurrentActionPoints, observerToRemove))
+                {
+                    m_eventsCurrentActionPoints -= observerToRemove;
+                }
+                break;
+            case PossibleStats.PM:
+                if (IsObserverInList(m_eventsMovementPoints, observerToRemove))
+                {
+                    m_eventsMovementPoints -= observerToRemove;
+                }
+                break;
+            case PossibleStats.CurrentPM:
+                if (IsObserverInList(m_eventsCurrentMovementPoints, observerToRemove))
+                {
+                    m_eventsCurrentMovementPoints -= observerToRemove;
+                }
+                break;
+        }
+    }
+
+    public void ClearAllEvents(PossibleStats possibleStats)
+    {
+        switch (possibleStats)
+        {
+            case PossibleStats.Health:
+                m_eventsHealth = null;
+                break;
+            case PossibleStats.CurrentHealth:
+                m_eventsCurrentHealth = null;
+                break;
+            case PossibleStats.CurrentShield:
+                m_eventsCurrentShield = null;
+                break;
+            case PossibleStats.PA:
+                m_eventsActionPoints = null;
+                break;
+            case PossibleStats.CurrentPA:
+                m_eventsCurrentActionPoints = null;
+                break;
+            case PossibleStats.PM:
+                m_eventsMovementPoints = null;
+                break;
+            case PossibleStats.CurrentPM:
+                m_eventsCurrentMovementPoints = null;
+                break;
+        }
+    }
+
+    private bool IsObserverInList(StatEventHandlerInt list, StatEventHandlerInt newObserver)
     {
         if (list != null)
         {
             foreach (var existingHandler in list.GetInvocationList())
-                if (existingHandler == newObserver) //If it doesn't work use : if(objA.Method.Name == objB.Method.Name && objA.Target.GetType().FullName == objB.Target.GetType().FullName) OR Delegate.Equals(objA, objB)
+                if (Delegate.Equals(list, newObserver))//existingHandler == newObserver)
+                { //If it doesn't work use : if(objA.Method.Name == objB.Method.Name && objA.Target.GetType().FullName == objB.Target.GetType().FullName) OR Delegate.Equals(objA, objB)
+                    Debug.Log("Observer in list");
                     return true;
+                }
+            Debug.Log("Observer not in list");
         }
         return false;
     }

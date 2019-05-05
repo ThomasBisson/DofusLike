@@ -19,11 +19,6 @@ public class SwitchableManager : MonoBehaviour
         
     }
 
-    public void SwitchToOtherInfos(HUDObserverValueGetter health, HUDObserverValueGetter pa, HUDObserverValueGetter pm)
-    {
-        m_switchableFight.SwitchToOtherInfos(health, pa, pm);
-    }
-
     public void SwitchToSpellsAndControls()
     {
         m_switchableFight.SwitchToSpellsAndControls();

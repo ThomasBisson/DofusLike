@@ -6,11 +6,16 @@ using Newtonsoft.Json;
 [System.Serializable]
 public class SpellTree
 {
+    [SerializeField]
+    [GreyOut]
+    private Dictionary<string, Spell> m_spells;
 
-    private List<Spell> m_spells;
+    private delegate void TriggerSpellAnimation();
+    private Dictionary<string, TriggerSpellAnimation> m_spellAnimation;
 
     public SpellTree() {
-        m_spells = new List<Spell>();
+        m_spells = new Dictionary<string, Spell>();
+        m_spellAnimation = new Dictionary<string, TriggerSpellAnimation>();
     }
 
     /// <summary>
@@ -19,10 +24,6 @@ public class SpellTree
     /// <param name="spellsAsJson"></param>
     public SpellTree(string spellsAsJson) {
         TransformJsonToSpells(spellsAsJson);
-    }
-
-    public SpellTree(List<Spell> spells) {
-        m_spells = spells;
     }
 
     /// <summary>
@@ -34,15 +35,30 @@ public class SpellTree
     {
     }
 
-    public bool TranformJsonToSpell(string spellAsJson)
+    public bool TranformJsonToSpell(string spellAsJson, Animator anim)
     {
         Spell spell = JsonConvert.DeserializeObject<Spell>(spellAsJson);
         if (spell == null)
+        {
+            m_spells.Clear();
             return false;
+        }
         else
-            m_spells.Add(spell);
+        {
+            spell.icon = Resources.Load<Sprite>("SpellsIcons/" + spell.name);
+            m_spells.Add(spell._id, spell);
+            m_spellAnimation.Add(spell._id, () => anim.SetTrigger(AnimationKindToAnimationtrigger(spell.animationKind)));
+        }
         return true;
     }
 
-    public List<Spell> GetSpells() { return m_spells; }
+    private string AnimationKindToAnimationtrigger(string animationKind)
+    {
+        if (animationKind == "Attack") return "isAttacking";
+        if (animationKind == "Magic") return "isMagicAttacking";
+        if (animationKind == "Ultimate") return "isUltimateAttacking";
+        return "";
+    }
+
+    public Spell GetSpell(string key) { return m_spells[key]; }
 }

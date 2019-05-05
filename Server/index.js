@@ -118,6 +118,8 @@ server.listen(8080, function() {
                             socket.broadcast.emit('deleteEnnemyGroup', myjson.id);
                             monsterGroups[myjson.id].isInBattle = true;
                             idEnnemyGroupInBattle = myjson.id;
+                        } else {
+                            console.log(monsterGroups[myjson.id].position.Distance(player.positionInWorld));
                         }
                     }
                 }
@@ -131,6 +133,7 @@ server.listen(8080, function() {
             socket.on('TryToHitSpell', async function (data) {
                 var myjson = JSON.parse(data);
                 var spell = await db.getSpell(myjson.spellID);
+
 
                 //check explosive range
                 let explosiveRange = 0;
@@ -158,7 +161,7 @@ server.listen(8080, function() {
                         //Check monsters
                         for (const monster of monsterGroups[idEnnemyGroupInBattle].monsters.values()) {
                             //If spell has hit
-                            if (XY.CircleDistance(monster.position) <= explosiveRange) {
+                            if (XY.CircleDistance(monster.positionArrayFight) <= explosiveRange) {
                                 monster.TakeDamage(damage, CheckIfAllEnnemiesAreDead(monsterGroups[idEnnemyGroupInBattle]));
                                 monster.GainShieldPoints(shield);
                                 socket.emit('UpdateCharacterStats', monster.GetBaseCaracteristicAsJson());
@@ -174,6 +177,21 @@ server.listen(8080, function() {
                         //Send message
                         socket.emit('UpdateCharacterStats', player.GetBaseCaracteristicAsJson());
                         socket.broadcast.emit('UpdateCharacterStats', player.GetBaseCaracteristicAsJson());
+
+                        let myjsonSellHit = {
+                            spellID: myjson.spellID,
+                            startPosition : {
+                                x : player.positionArrayFight.x,
+                                y : player.positionArrayFight.y
+                            },
+                            endPosition : {
+                                x : XY.x,
+                                y : XY.y
+                            }
+                        }
+
+                        socket.emit("SpellHasHit", myjsonSellHit);
+                        socket.broadcast.emit("SpellHasHit", myjsonSellHit);
                     }
                 }
             });

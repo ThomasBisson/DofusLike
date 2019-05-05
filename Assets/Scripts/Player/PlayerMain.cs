@@ -1,10 +1,13 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 
 public class PlayerMain : PlayerStrategy
 {
-    #region VARS
+    #region Vars
 
     public delegate GridMain GetGridMain();
     private GetGridMain m_getGridMain;
@@ -12,9 +15,13 @@ public class PlayerMain : PlayerStrategy
     public delegate Transform GetTransform();
     private GetTransform m_getTransform;
 
-    private float m_aggroRange = 1f;
+    public delegate void StartAggroEnnemy(string id, Transform ennemy, float aggroRange);
+    private StartAggroEnnemy m_aggroEnnemy;
 
-    private Coroutine m_checkEnnemyInRange;
+    public delegate void StopAggroEnnemy();
+    private StopAggroEnnemy m_stopAggroEnnemy;
+
+    private float m_aggroRange = 1f;
 
     #endregion
 
@@ -24,10 +31,12 @@ public class PlayerMain : PlayerStrategy
     {
     }
 
-    public void SetGetterCallbacks(GetGridMain getGridMain, GetTransform getTransform)
+    public void SetGetterCallbacks(GetGridMain getGridMain, GetTransform getTransform, StartAggroEnnemy aggroEnnemy, StopAggroEnnemy stopAggroEnnemy)
     {
         m_getGridMain = getGridMain;
         m_getTransform = getTransform;
+        m_aggroEnnemy = aggroEnnemy;
+        m_stopAggroEnnemy = stopAggroEnnemy;
     }
 
     public override void Start()
@@ -37,7 +46,7 @@ public class PlayerMain : PlayerStrategy
 
     #endregion
 
-    #region METHODS
+    #region Methods
 
     #region GetterSetter
 
@@ -51,12 +60,22 @@ public class PlayerMain : PlayerStrategy
     {
         if (Input.GetMouseButtonDown(0))
         {
-            RaycastHit hitInfo;
+            bool hasHitEnnemy = false;
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-            if (Physics.Raycast(ray, out hitInfo, Mathf.Infinity, LayerMask.GetMask("Ground")))
+            RaycastHit[] hitsInfo = Physics.RaycastAll(ray.origin, ray.direction, 20f, ~LayerMask.GetMask("UI"));
+            foreach(var hit in hitsInfo)
             {
-                GoNear(hitInfo.point);
+                if(hit.transform.tag == "Ennemy")
+                {
+                    hasHitEnnemy = true;
+                    m_aggroEnnemy(hit.transform.GetComponent<NetworkIdentity>().GetID(), hit.transform, m_aggroRange);
+                }
+                if(hit.transform.tag == "GroundGrid")
+                {
+                    if (!hasHitEnnemy)
+                        m_stopAggroEnnemy();
+                    GoNear(hit.point);
+                }
             }
         }
         m_playerManager.m_positionArrayMain = m_getGridMain().GetArrayPosition(m_getTransform().position);
@@ -69,34 +88,9 @@ public class PlayerMain : PlayerStrategy
 
     public override void RandomizePlayerPosition(bool mustTeleportPlayer)
     {
-        m_playerManager.m_positionArrayMain = new Vector2(Random.Range(0, m_getGridMain().m_totalSizeX), Random.Range(0, m_getGridMain().m_totalSizeZ));
+        m_playerManager.m_positionArrayMain = new Vector2(UnityEngine.Random.Range(0, m_getGridMain().m_totalSizeX), UnityEngine.Random.Range(0, m_getGridMain().m_totalSizeZ));
         if (mustTeleportPlayer)
             m_getTransform().position = m_getGridMain().GetNearestPointOnGrid(m_playerManager.m_positionArrayMain);//m_grid.Map[(int)m_positionPlayer.x, (int)m_positionPlayer.y].transform.position;
-    }
-
-    #endregion
-
-    #region Monster
-
-    public void CheckIfEnnemyInRange(string id, Transform position)
-    {
-        if (m_checkEnnemyInRange == null)
-            m_checkEnnemyInRange = StartCoroutine(CheckIfEnnemyInRangeEnumerator(id, position));
-        else
-        {
-            StopCoroutine(m_checkEnnemyInRange);
-            m_checkEnnemyInRange = StartCoroutine(CheckIfEnnemyInRangeEnumerator(id, position));
-        }
-    }
-
-    IEnumerator CheckIfEnnemyInRangeEnumerator(string id, Transform position)
-    {
-        yield return new WaitUntil(() =>
-        {
-            return Vector3.Distance(position.position, m_getTransform().position) <= m_aggroRange;
-        });
-        m_playerManager.m_animator.SetBool("isRunning", false);
-        m_playerManager.m_networkBattle.SendEngageBattleMessage(id);
     }
 
     #endregion

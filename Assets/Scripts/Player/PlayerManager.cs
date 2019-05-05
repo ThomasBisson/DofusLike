@@ -47,30 +47,23 @@ public class PlayerManager : Characters
 
     protected override void Start()
     {
-        m_strategy = new PlayerMain(this);
+        //m_strategy = new PlayerMain(this);
     }
 
     protected override void Update()
     {
         base.Update();
-        m_strategy.HandleClickOnGround();
+        if (m_strategy != null)
+        {
+            m_strategy.HandleClickOnGround();
+        }
     }
 
     #endregion
 
-    #region METHODS
+    #region Methods
 
-    #region MOVEMENTS
-    
-
-    ////TODO : make him go tile by tile from combat
-    //public virtual void GoNear(Vector3 clickPoint)
-    //{
-    //    m_targetPositionChanged = true;
-    //    m_animator.SetBool("isRunning", true);
-    //    transform.LookAt(m_targetPosition);
-    //    m_strategy.GoNear(clickPoint, m_targetPosition);
-    //}
+    #region Movements
 
     public void ChangeTarget(Vector3 clickPoint)
     {
@@ -82,7 +75,7 @@ public class PlayerManager : Characters
 
     #endregion
 
-    #region GETTER_SETTER
+    #region GetterSetter
 
     public void SetHUDManager(HUDUIManager hud) { m_HUDUIManager = hud; }
 
@@ -93,6 +86,7 @@ public class PlayerManager : Characters
 
     public void FindIconInResources()
     {
+        Debug.Log("IconCharacter/Players/" + m_stats.m_name);
         m_icon = Resources.Load<Sprite>("IconCharacter/Players/" + m_stats.m_name);
     }
 
@@ -112,6 +106,28 @@ public class PlayerManager : Characters
 
     #endregion
 
+    #region Spells
+
+
+
+    public void SetHUDSpellButtons()
+    {
+        List<string> ids = new List<string>();
+        List<Sprite> sprites = new List<Sprite>();
+
+        for (int i = 0; i < m_spellTree.GetSpells().Count; i++)
+        {
+            ids.Add(i);
+            sprites.Add(Resources.Load<Sprite>("SpellsIcons/" + m_spellTree.GetSpells()[i].name));
+        }
+
+        m_HUDUIManager.SwitchableMana.SwitchableF.SpellAndControlsUI.FillCallbacksAndIconsSpellButtons(() => { GetPlayerFight().HandleSpellButtonClick(); }, ids, sprites);
+    }
+
+
+
+    #endregion
+
     #region Strategy
 
     public void ChangeStrategy(PossibleStrategy strategy)
@@ -122,12 +138,15 @@ public class PlayerManager : Characters
                 m_strategy = new PlayerMain(this);
                 m_gridMain = FindObjectOfType<GridMain>();
                 GetPlayerMain().SetGetterCallbacks(
-                    () => {
-                        return m_gridMain;
+                    delegate {
+                        return this.m_gridMain;
                     }, 
-                    () => {
-                        return transform;
-                    });
+                    delegate { 
+                        return this.transform;
+                    },
+                    TryTofightEnnemmy,
+                    StopTryingToFightEnnemy
+                );
                 GetPlayerMain().Start();
                 break;
 
@@ -140,6 +159,9 @@ public class PlayerManager : Characters
                     },
                     () => {
                         return transform;
+                    },
+                    () => {
+                        return m_spellTree;
                     }
                 );
                 GetPlayerFight().Start();
@@ -147,22 +169,34 @@ public class PlayerManager : Characters
         }
     }
 
+    #region MainHelper
+
+    private Coroutine m_aggroingEnnemy;
+
+    private void TryTofightEnnemmy(string id, Transform ennemy, float aggroRange)
+    {
+        StopTryingToFightEnnemy();
+        m_aggroingEnnemy = StartCoroutine(CheckPosition(id, ennemy, aggroRange));
+    }
+
+    private void StopTryingToFightEnnemy()
+    {
+        if(m_aggroingEnnemy != null)
+            StopCoroutine(m_aggroingEnnemy);
+    }
+
+    private IEnumerator CheckPosition(string id, Transform ennemy, float aggroRange)
+    {
+        yield return new WaitUntil(() => {
+            return Vector3.Distance(ennemy.position, transform.position) <= aggroRange;
+        });
+        m_animator.SetBool("isRunning", false);
+        StopMoving();
+        m_networkBattle.SendEngageBattleMessage(id);
+    }
+
+
     #endregion
-
-    #region STATIC
-
-    //public static void PlayerMainToPlayerFight(PlayerManagerMain main, ref PlayerManagerFight fight)
-    //{
-    //    fight.SetStats(main.m_stats);
-    //    fight.SetSpellTree(main.m_spellTree);
-    //    fight.m_speed = main.m_speed;
-    //    fight.SetHUDManager(main.m_HUDUIManager);
-    //    fight.m_networkIdentity = main.m_networkIdentity;
-    //    fight.SetHUDSpellButtons();
-    //    fight.m_positionArrayFight = main.m_positionArrayFight;
-    //    fight.m_positionArrayMain = main.m_positionArrayMain;
-    //    fight.m_icon = main.m_icon;
-    //}
 
     #endregion
 

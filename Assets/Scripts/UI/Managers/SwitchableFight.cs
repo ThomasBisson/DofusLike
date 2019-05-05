@@ -27,8 +27,12 @@ public class SwitchableFight : MonoBehaviour
         
     }
 
-    public void MakeLeftTopIconAppear(Sprite sprite)
+    public void MakeLeftTopIconAppear(params object[] args)
     {
+        Sprite sprite = (Sprite)args[0];
+        if (sprite == null)
+            return;
+
         m_leftTopIcon.sprite = sprite;
         m_leftTopIcon.rectTransform.DOLocalMoveX(m_leftTopIcon.rectTransform.localPosition.x + 150, 0.5f).OnComplete(delegate
         {
@@ -42,7 +46,7 @@ public class SwitchableFight : MonoBehaviour
         m_leftTopIcon.rectTransform.DOLocalMoveX(m_leftTopIcon.rectTransform.localPosition.x - 150, 0.5f);
     }
 
-    public void SwitchToOtherInfos(HUDObserverValueGetter health, HUDObserverValueGetter pa, HUDObserverValueGetter pm)
+    public void SwitchToOtherInfos(Characters character)
     {
         if (!m_isInSpellsAndControls)
             return;
@@ -51,6 +55,7 @@ public class SwitchableFight : MonoBehaviour
 
         m_spellsAndControls.gameObject.SetActive(false);
         m_othersInfos.gameObject.SetActive(true);
+        m_othersInfos.SubscribeThisCharacter(character);
     }
 
     public void SwitchToSpellsAndControls()
@@ -68,7 +73,7 @@ public class SwitchableFight : MonoBehaviour
     {
         List<Characters> characters = new List<Characters>();
         characters.Add(player);
-        foreach (var ennemy in ennemyGroup.m_ennemies)
+        foreach (var ennemy in ennemyGroup.Ennemies)
             characters.Add(ennemy);
         m_turnInFight.PopulateTurnInFightBar(characters);
     }

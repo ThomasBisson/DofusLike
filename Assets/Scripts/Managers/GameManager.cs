@@ -7,7 +7,7 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
 
-    public HUDUIManager m_HUDUIManager;
+    private HUDUIManager m_HUDUIManager;
 
     public PlayerManager m_playerManager;
     //public PlayerManagerMain m_PlayerManagerMain
@@ -46,6 +46,9 @@ public class GameManager : MonoBehaviour
             m_playerManager = player;
         }
         player.m_HUDUIManager = m_HUDUIManager;
+        player.ChangeStrategy(PlayerManager.PossibleStrategy.Main);
+        Camera.main.GetComponent<FollowTarget>().Target = m_playerManager.transform;
+
         //Subscribe to events
         //player.SubscribeToTimeEvents(m_HUDUIManager.SwitchableMana.SwitchableF.TurnFight.)
 
@@ -71,6 +74,7 @@ public class GameManager : MonoBehaviour
             string spellJson = JsonConvert.SerializeObject(obj as Dictionary<string, object>, Formatting.None);
             player.SetSpellTree(spellJson);
         }
+        player.SetHUDSpellButtons();
 
         //SetPosition
         var dataPos = dataPlayer["positionInWorld"] as Dictionary<string, object>;
@@ -106,7 +110,7 @@ public class GameManager : MonoBehaviour
 
         //Create EnnemyGroup
         EnnemyGroup ennemyGroup = niEnnemyGroup.gameObject.AddComponent<EnnemyGroup>();
-        ennemyGroup.m_HUDUIManager = m_HUDUIManager;
+        ennemyGroup.ActivateMainMode();
 
         //Create each EnnemyManager
         EnnemyManager ennemy;
@@ -125,7 +129,6 @@ public class GameManager : MonoBehaviour
                 (int)(double)dataEnnemies[i]["actionPoints"],
                 (int)(double)dataEnnemies[i]["movementPoints"]
             );
-            //TODO : Subscribe to the events (observer)
 
             //Find the icon in the resources
             ennemy.FindIconInResources();
@@ -145,12 +148,15 @@ public class GameManager : MonoBehaviour
             float xEnnemy = (float)(double)dataPosFight["x"];
             float yEnnemy = (float)(double)dataPosFight["y"];
             ennemy.m_positionArrayFight = new Vector2(xEnnemy, yEnnemy);
+
+            ennemy.ChangeStrategy(EnnemyManager.PossibleStrategy.Main);
+
         }
 
         //Set the EnnemyGroup position
         float x = (float)(double)dataPosGroup["x"];
         float z = (float)(double)dataPosGroup["z"];
-        ennemyGroup.m_position = new Vector2(x, z);
+        ennemyGroup.Position = new Vector2(x, z);
     }
 
 }

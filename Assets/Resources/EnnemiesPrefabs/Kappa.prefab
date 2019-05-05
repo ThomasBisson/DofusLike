@@ -91602,7 +91602,7 @@ GameObject:
   - component: {fileID: 8969160583550634505}
   m_Layer: 0
   m_Name: Kappa
-  m_TagString: Untagged
+  m_TagString: Ennemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

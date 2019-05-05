@@ -119,7 +119,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh10466
+  m_Name: pb_Mesh127698
   serializedVersion: 9
   m_SubMeshes:
   - serializedVersion: 2
@@ -398,8 +398,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4c818347eaed984682504d19361c9a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_playerManagerFight: {fileID: 0}
-  m_secondInTurn: 30
+  m_HUDUIManager: {fileID: 0}
+  m_playerManager: {fileID: 0}
 --- !u!4 &1097876374
 Transform:
   m_ObjectHideFlags: 0
@@ -443,7 +443,7 @@ GameObject:
   - component: {fileID: 1366827005}
   m_Layer: 9
   m_Name: Ground
-  m_TagString: Untagged
+  m_TagString: GroundGrid
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 127

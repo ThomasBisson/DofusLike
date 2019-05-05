@@ -175,4 +175,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 909a194577ab6b8458f24678e4ed278c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_icon: {fileID: 1447644699545723051}
   m_secondsImage: {fileID: 3566831716818286792}

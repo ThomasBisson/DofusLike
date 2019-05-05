@@ -15,7 +15,7 @@ public class IconTurnInFight : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        m_icon = GetComponent<Image>();
     }
 
     public void UpdateIcon(Sprite sprite)

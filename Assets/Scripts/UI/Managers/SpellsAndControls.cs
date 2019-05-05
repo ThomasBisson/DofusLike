@@ -23,7 +23,7 @@ public class SpellsAndControls : MonoBehaviour
     #region METHODS
 
 
-    public void FillCallbacksAndIconsSpellButtons(SpellButton.OnClick method, List<int> ids, List<Sprite> sprites)
+    public void FillCallbacksAndIconsSpellButtons(SpellButton.OnClick method, List<string> ids, List<Sprite> sprites)
     {
         //TODO : See what I wanted to do here ????????
 
