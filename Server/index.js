@@ -77,6 +77,13 @@ server.listen(8080, function() {
                 }
             }
 
+            //Tell our player about the other monsters
+            for (var monsterGroupID in monsterGroups) {
+                if (monsterGroupID != thisMonsterGroupID && !monsterGroups[monsterGroupID].isInBattle) {
+                    socket.emit('spawnEnnemies', monsterGroups[monsterGroupID])
+                }
+            }
+
             //Positional Data from client
             socket.on('updatePosition', function (data) {
 

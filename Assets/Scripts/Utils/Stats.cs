@@ -233,10 +233,8 @@ public class Stats
             foreach (var existingHandler in list.GetInvocationList())
                 if (Delegate.Equals(list, newObserver))//existingHandler == newObserver)
                 { //If it doesn't work use : if(objA.Method.Name == objB.Method.Name && objA.Target.GetType().FullName == objB.Target.GetType().FullName) OR Delegate.Equals(objA, objB)
-                    Debug.Log("Observer in list");
                     return true;
                 }
-            Debug.Log("Observer not in list");
         }
         return false;
     }

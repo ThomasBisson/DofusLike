@@ -49,7 +49,15 @@ public class SpellTree
             m_spells.Add(spell._id, spell);
             m_spellAnimation.Add(spell._id, () => anim.SetTrigger(AnimationKindToAnimationtrigger(spell.animationKind)));
         }
+
         return true;
+    }
+
+    public void AddSpell(Spell spell, Animator anim)
+    {
+        spell.icon = Resources.Load<Sprite>("SpellsIcons/" + spell.name);
+        m_spells.Add(spell._id, spell);
+        m_spellAnimation.Add(spell._id, () => anim.SetTrigger(AnimationKindToAnimationtrigger(spell.animationKind)));
     }
 
     private string AnimationKindToAnimationtrigger(string animationKind)

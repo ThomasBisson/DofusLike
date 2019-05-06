@@ -119,7 +119,7 @@ public class NetworkClient : MonoBehaviour
 
         socketManagerRef.Socket.On("spawnPlayer", (socket, packet, args) =>
         {
-            Debug.Log("Player : \n" + packet);
+            Debug.LogError("Player : \n" + packet);
 
             //Get needed values in data
             var dataPlayer = args[0] as Dictionary<string, object>;
@@ -141,7 +141,7 @@ public class NetworkClient : MonoBehaviour
 
         socketManagerRef.Socket.On("spawnAnotherPlayer", (socket, packet, args) =>
         {
-            Debug.Log("Player : \n" + packet);
+            Debug.LogError("Player : \n" + packet);
 
             //Get needed values in data
             var dataPlayer = args[0] as Dictionary<string, object>;
@@ -163,7 +163,7 @@ public class NetworkClient : MonoBehaviour
 
         socketManagerRef.Socket.On("spawnEnnemies", (socket, packet, args) =>
         {
-            Debug.Log("Ennemy : \n" + packet);
+            Debug.LogError("Ennemy : \n" + packet);
 
             //Get needed values in data
             var dataGroup = args[0] as Dictionary<string, object>;
@@ -223,8 +223,6 @@ public class NetworkClient : MonoBehaviour
 
         socketManagerRef.Socket.On("updatePosition", (socket, packet, args) =>
         {
-            Debug.Log("A position was updated");
-
             var data = args[0] as Dictionary<string, object>;
             string id = data["id"] as string;
 

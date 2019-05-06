@@ -16,7 +16,6 @@ public class Characters : MonoBehaviour
     [Header("Characters parent")]
     public Character m_character;
     [SerializeField]
-    [GreyOut]
     protected SpellTree m_spellTree;
     public Stats m_stats { get; private set; }
     [SerializeField]
@@ -101,6 +100,48 @@ public class Characters : MonoBehaviour
 
         m_spellTree.TranformJsonToSpell(spellAsJson, m_animator);
     }
+
+    public void SetSpellTree(List<object> spells)
+    {
+        Spell spell;
+        Dictionary<string, object> d;
+        foreach (var o in spells)
+        {
+            d = o as Dictionary<string, object>;
+            spell = new Spell();
+            spell._id = d["_id"] as string;
+            spell.name = d["name"] as string;
+            spell.actionPointsConsuption = (float)(double)d["actionPointsConsuption"];
+            if(d.ContainsKey("damage"))
+                spell.damage = (float)(double)d["damage"];
+            spell.range = (float)(double)d["range"];
+            if (d.ContainsKey("explosiveRange"))
+                spell.explosiveRange = (float)(double)d["explosiveRange"];
+            if (d.ContainsKey("shield"))
+                spell.shield = (float)(double)d["shield"];
+            if (d.ContainsKey("shieldDuration"))
+                spell.shieldDuration = (float)(double)d["shieldDuration"];
+            if (d.ContainsKey("cooldown"))
+                spell.cooldown = (float)(double)d["cooldown"];
+            spell.animationKind = d["animationKind"] as string;
+            m_spellTree.AddSpell(spell, m_animator);
+        }
+    }
+
+    //TODO : REMOVE ! VA SAVOIR PUTAIN DE POURQUOI MAIS JSONCONVERT BUG EN BUILD
+    //public void SetSpellTree(string spellAsJson)
+    //{
+    //    _id;
+    //    name;
+    //    actionPointsConsuption;
+    //    damage;
+    //    range;
+    //    explosiveRange;
+    //    shield;
+    //    shieldDuration;
+    //    cooldown;
+    //    animationKind;
+    //}
 
     public void SetStats(string name, int health, int actionPoints, int movementPoints)
     {

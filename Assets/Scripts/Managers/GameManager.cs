@@ -59,11 +59,14 @@ public class GameManager : MonoBehaviour
         player.FindIconInResources();
 
         //Set SpellTree
-        foreach (var obj in spellsAsList)
-        {
-            string spellJson = JsonConvert.SerializeObject(obj as Dictionary<string, object>, Formatting.None);
-            player.SetSpellTree(spellJson);
-        }
+        //foreach (var obj in spellsAsList)
+        //{
+        //    string spellJson = JsonConvert.SerializeObject(obj as Dictionary<string, object>, Formatting.None);
+        //    Debug.Log(obj as string);
+        //    //Debug.Log(JsonUtility.ToJson(obj as Dictionary<string, object>));
+        //    player.SetSpellTree(spellJson);
+        //}
+        player.SetSpellTree(spellsAsList);
 
         //SetPosition
         var dataPos = dataPlayer["positionInWorld"] as Dictionary<string, object>;
@@ -106,11 +109,12 @@ public class GameManager : MonoBehaviour
         player.FindIconInResources();
 
         //Set SpellTree
-        foreach (var obj in spellsAsList)
-        {
-            string spellJson = JsonConvert.SerializeObject(obj as Dictionary<string, object>, Formatting.None);
-            player.SetSpellTree(spellJson);
-        }
+        //foreach (var obj in spellsAsList)
+        //{
+        //    string spellJson = JsonConvert.SerializeObject(obj as Dictionary<string, object>, Formatting.None);
+        //    player.SetSpellTree(spellJson);
+        //}
+        player.SetSpellTree(spellsAsList);
 
         //SetPosition
         var dataPos = dataPlayer["positionInWorld"] as Dictionary<string, object>;
@@ -172,11 +176,12 @@ public class GameManager : MonoBehaviour
 
             //Set SpellTree
             spellsAsList = dataEnnemiesCaracteristic[i]["myspells"] as List<object>;
-            foreach (var obj in spellsAsList)
-            {
-                string spellJson = JsonConvert.SerializeObject(obj as Dictionary<string, object>, Formatting.None);
-                ennemy.SetSpellTree(spellJson);
-            }
+            //foreach (var obj in spellsAsList)
+            //{
+            //    string spellJson = JsonConvert.SerializeObject(obj as Dictionary<string, object>, Formatting.None);
+            //    ennemy.SetSpellTree(spellJson);
+            //}
+            ennemy.SetSpellTree(spellsAsList);
             ennemyGroup.AddToEnnemyGroup(ennemy);
             ennemy.gameObject.SetActive(false);
 
