@@ -16,6 +16,9 @@ public class SwitchableFight : MonoBehaviour
     private TurnInFight m_turnInFight;
     public TurnInFight TurnFight { get { return m_turnInFight; } }
 
+
+    [SerializeField]
+    private RectTransform m_leftIconBackground;
     [SerializeField]
     private Image m_leftTopIcon;
 
@@ -34,7 +37,7 @@ public class SwitchableFight : MonoBehaviour
             return;
 
         m_leftTopIcon.sprite = sprite;
-        m_leftTopIcon.rectTransform.DOLocalMoveX(m_leftTopIcon.rectTransform.localPosition.x + 150, 0.5f).OnComplete(delegate
+        m_leftIconBackground.DOLocalMoveX(m_leftIconBackground.localPosition.x + 150, 0.5f).OnComplete(delegate
         {
             StartCoroutine(WaitXSecondsIconTopLeft(1));
         });
@@ -43,7 +46,7 @@ public class SwitchableFight : MonoBehaviour
     IEnumerator WaitXSecondsIconTopLeft(float seconds)
     {
         yield return new WaitForSeconds(seconds);
-        m_leftTopIcon.rectTransform.DOLocalMoveX(m_leftTopIcon.rectTransform.localPosition.x - 150, 0.5f);
+        m_leftIconBackground.DOLocalMoveX(m_leftIconBackground.localPosition.x - 150, 0.5f);
     }
 
     public void SwitchToOtherInfos(Characters character)

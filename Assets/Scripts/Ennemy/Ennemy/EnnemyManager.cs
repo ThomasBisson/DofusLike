@@ -7,7 +7,6 @@ public class EnnemyManager : Characters
     #region Vars
 
     [Header("Movement")]
-    public Vector2 m_positionArrayFight;
 
     public EnnemyGroup m_ennemyGroup;
 
@@ -20,11 +19,6 @@ public class EnnemyManager : Characters
     }
 
     private EnnemyStrategy m_strategy;
-
-    /************** Strategy fight Mono vars ***************/
-    [SerializeField]
-    [GreyOut]
-    private GridFight m_gridFight;
 
     #endregion
 
@@ -62,7 +56,7 @@ public class EnnemyManager : Characters
 
     #region GetterSetter
 
-    public void FindIconInResources()
+    public override void FindIconInResources()
     {
         Debug.Log("IconCharacter/Ennemies/" + m_stats.m_name);
         m_icon = Resources.Load<Sprite>("IconCharacter/Ennemies/" + m_stats.m_name);

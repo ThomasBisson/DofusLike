@@ -5,10 +5,6 @@ using UnityEngine;
 public class PlayerManager : Characters
 {
     #region VARS
-
-    public Vector2 m_positionArrayMain;
-    public Vector2 m_positionArrayFight;
-
     /******** HUD **********/
     public HUDUIManager m_HUDUIManager;
 
@@ -26,15 +22,7 @@ public class PlayerManager : Characters
     private PlayerStrategy m_strategy;
 
 
-    /************** Strategy Main Mono vars***************/
-    [SerializeField]
-    [GreyOut]
-    private GridMain m_gridMain;
-
-    /************* Strategy Fight Mono vars **************/
-    [SerializeField]
-    [GreyOut]
-    private GridFight m_gridFight;
+    
 
     #endregion
 
@@ -86,7 +74,7 @@ public class PlayerManager : Characters
         m_networkBattle = GetComponent<NetworkBattle>();
     }
 
-    public void FindIconInResources()
+    public override void FindIconInResources()
     {
         Debug.Log("IconCharacter/Players/" + m_stats.m_name);
         m_icon = Resources.Load<Sprite>("IconCharacter/Players/" + m_stats.m_name);

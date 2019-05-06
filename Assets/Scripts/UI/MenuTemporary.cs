@@ -10,7 +10,8 @@ public class MenuTemporary : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        Debug.developerConsoleVisible = true;
+        Debug.LogError("SHOW THE FUCKING COMMAND PROMPT");
     }
 
     public void GoToMainScene()

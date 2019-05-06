@@ -39,8 +39,8 @@ public class BattleManager : MonoBehaviour
         SceneManager.SetActiveScene(scene);
 
         //Set Player to fight mode
-        GameManager.Instance.m_playerManager.ChangeStrategy(PlayerManager.PossibleStrategy.Fight);
-        GameManager.Instance.m_playerManager.SubscribeToNewTurnEvents(m_HUDManager.SwitchableMana.SwitchableF.MakeLeftTopIconAppear);
+        GameManager.PlayerManager.ChangeStrategy(PlayerManager.PossibleStrategy.Fight);
+        GameManager.PlayerManager.SubscribeToNewTurnEvents(m_HUDManager.SwitchableMana.SwitchableF.MakeLeftTopIconAppear);
 
 
         //Set ennemies
@@ -69,7 +69,7 @@ public class BattleManager : MonoBehaviour
 
 
         //Activate HUD for battle
-        m_HUDManager.SwitchableMana.SwitchToFight(GameManager.Instance.m_playerManager, groupFight);
+        m_HUDManager.SwitchableMana.SwitchToFight(GameManager.PlayerManager, groupFight);
 
 
         //Stop load screen and unload main scene
@@ -77,4 +77,31 @@ public class BattleManager : MonoBehaviour
         SceneManager.UnloadSceneAsync("Main");
     }
 
+    public void SwitchToMain(Vector2 posMainPlayer)
+    {
+        SceneManager.LoadScene("Main", LoadSceneMode.Additive);
+        StartCoroutine(WaitSceneIsLoadedMain(posMainPlayer));
+    }
+
+    IEnumerator WaitSceneIsLoadedMain(Vector2 posMainPlayer)
+    {
+        //Start a loading screen and wait until the fight scene is loaded
+        m_HUDManager.StartLoadScreen();
+        Scene scene = SceneManager.GetSceneByName("Main");
+        yield return new WaitUntil(() => scene.isLoaded);
+
+        SceneManager.SetActiveScene(scene);
+
+        //Set Player to main mode
+        GameManager.PlayerManager.ChangeStrategy(PlayerManager.PossibleStrategy.Main);
+        GameManager.PlayerManager.UnsubscribeToNewTurnEvents(m_HUDManager.SwitchableMana.SwitchableF.MakeLeftTopIconAppear);
+
+        //Activate HUD for battle
+        m_HUDManager.SwitchableMana.SwitchToMain();
+
+
+        //Stop load screen and unload main scene
+        m_HUDManager.StopLoadScreen();
+        SceneManager.UnloadSceneAsync("Fight");
+    }
 }

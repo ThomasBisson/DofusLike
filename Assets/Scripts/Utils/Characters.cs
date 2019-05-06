@@ -28,6 +28,17 @@ public class Characters : MonoBehaviour
     protected Sprite m_icon;
 
     /**** Movement *****/
+    public Vector2 m_positionArrayFight;
+    public Vector2 m_positionArrayMain;
+
+    [SerializeField]
+    [GreyOut]
+    protected GridMain m_gridMain;
+
+    [SerializeField]
+    [GreyOut]
+    protected GridFight m_gridFight;
+
 
     [SerializeField]
     protected float m_speed = 5f;
@@ -103,6 +114,10 @@ public class Characters : MonoBehaviour
 
     public void SetStats(Stats stats) { m_stats = stats; }
 
+    public virtual void FindIconInResources()
+    {
+    }
+
     #endregion
 
     #region Movement
@@ -160,6 +175,14 @@ public class Characters : MonoBehaviour
         if (!IsObserverNewTurnInList(newObserver))
         {
             m_newTurnEvents += new NewTurnEventHandler(newObserver);
+        }
+    }
+
+    public void UnsubscribeToNewTurnEvents(NewTurnEventHandler newObserver)
+    {
+        if (IsObserverNewTurnInList(newObserver))
+        {
+            m_newTurnEvents -= new NewTurnEventHandler(newObserver);
         }
     }
 

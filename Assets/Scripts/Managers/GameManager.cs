@@ -7,20 +7,9 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
 
-    private HUDUIManager m_HUDUIManager;
+    private static HUDUIManager m_HUDUIManager;
 
-    public PlayerManager m_playerManager;
-    //public PlayerManagerMain m_PlayerManagerMain
-    //{
-    //    get { return m_playerManagerMain; }
-    //    set
-    //    {
-    //        m_playerManagerMain = value;
-    //        Camera.main.GetComponent<FollowTarget>().Target = m_playerManagerMain.transform;
-    //    }
-    //}
-
-    //public PlayerManagerFight m_playerManagerFight;
+    public static PlayerManager PlayerManager;
 
     private void Awake()
     {
@@ -29,7 +18,8 @@ public class GameManager : MonoBehaviour
         m_HUDUIManager = HUDUIManager.Instance;
     }
 
-    public void SetAPlayer(NetworkIdentity ni, object[] data) {
+    public static void SetAMainPlayer(NetworkIdentity ni, object[] data)
+    {
         //Get needed values in data
         var dataPlayer = data[0] as Dictionary<string, object>;
         var dataCharacteristic = dataPlayer["characteristic"] as Dictionary<string, object>;
@@ -43,11 +33,11 @@ public class GameManager : MonoBehaviour
         {
             player.gameObject.AddComponent<NetworkBattle>();
             player.FindNetworkBattle();
-            m_playerManager = player;
+            PlayerManager = player;
         }
         player.m_HUDUIManager = m_HUDUIManager;
         player.ChangeStrategy(PlayerManager.PossibleStrategy.Main);
-        Camera.main.GetComponent<FollowTarget>().Target = m_playerManager.transform;
+        Camera.main.GetComponent<FollowTarget>().Target = PlayerManager.transform;
 
         //Subscribe to events
         //player.SubscribeToTimeEvents(m_HUDUIManager.SwitchableMana.SwitchableF.TurnFight.)
@@ -92,7 +82,54 @@ public class GameManager : MonoBehaviour
         player.m_positionArrayFight = new Vector2(xFight, yFight);
     }
 
-    public void SetAnEnnemy(NetworkIdentity niEnnemyGroup, List<NetworkIdentity> niEnnemies, object[] data)
+    public static void SetAnotherPlayer(NetworkIdentity ni, object[] data)
+    {
+        //Get needed values in data
+        var dataPlayer = data[0] as Dictionary<string, object>;
+        var dataCharacteristic = dataPlayer["characteristic"] as Dictionary<string, object>;
+        var spellsAsList = dataCharacteristic["myspells"] as List<object>;
+
+
+        //Set the PlayerManagerMain
+        var player = ni.GetComponent<OtherPlayerManager>();
+        player.m_character = Characters.Character.PLAYER;
+        
+        //Set player Stats
+        player.SetStats(
+            dataCharacteristic["name"] as string,
+            (int)(double)dataPlayer["health"],
+            (int)(double)dataPlayer["actionPoints"],
+            (int)(double)dataPlayer["movementPoints"]
+        );
+
+        //Find the icon in the resources
+        player.FindIconInResources();
+
+        //Set SpellTree
+        foreach (var obj in spellsAsList)
+        {
+            string spellJson = JsonConvert.SerializeObject(obj as Dictionary<string, object>, Formatting.None);
+            player.SetSpellTree(spellJson);
+        }
+
+        //SetPosition
+        var dataPos = dataPlayer["positionInWorld"] as Dictionary<string, object>;
+        float x = (float)(double)dataPos["x"];
+        float z = (float)(double)dataPos["z"];
+        player.transform.position = new Vector3(x, player.transform.position.y, z);
+
+        var dataPosMain = dataPlayer["positionArrayMain"] as Dictionary<string, object>;
+        float xMain = (float)(double)dataPosMain["x"];
+        float yMain = (float)(double)dataPosMain["y"];
+        player.m_positionArrayMain = new Vector2(xMain, yMain);
+
+        var dataPosFight = dataPlayer["positionArrayFight"] as Dictionary<string, object>;
+        float xFight = (float)(double)dataPosFight["x"];
+        float yFight = (float)(double)dataPosFight["y"];
+        player.m_positionArrayFight = new Vector2(xFight, yFight);
+    }
+
+    public static void SetAnEnnemy(NetworkIdentity niEnnemyGroup, List<NetworkIdentity> niEnnemies, object[] data)
     {
         //Get needed values in data
         var dataGroup = data[0] as Dictionary<string, object>;

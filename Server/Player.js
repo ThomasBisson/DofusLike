@@ -53,7 +53,7 @@ module.exports = class Player {
             this.currentHealthPoints -= Math.abs(this.currentShield);
             this.currentShield = 0;
 
-            if (this.currentHealthPoints - damage < 0) {
+            if (this.currentHealthPoints <= 0) {
                 this.currentHealthPoints = 0;
                 callbackFunction();
             }

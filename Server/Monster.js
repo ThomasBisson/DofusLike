@@ -49,7 +49,7 @@ module.exports = class Monster {
             this.currentHealth -= Math.abs(this.currentShield);
             this.currentShield = 0;
 
-            if (this.currentHealth - damage < 0) {
+            if (this.currentHealth <= 0) {
                 this.currentHealth = 0;
                 callbacksFunction();
             }

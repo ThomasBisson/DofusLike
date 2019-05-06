@@ -11,16 +11,15 @@ var MyVector2 = require('./MyVector2.js');
 
 var timeEachTurn = 15;
 
-//TODO : need these var for each player, so I can't put them here
-var idCurrentTurn = '';
-var mustEndTurn = false;
-var stopCombat = false;
-
 server.listen(8080, function() {
 
     console.log("Server is now running...");
 
     (async function () {
+        var idCurrentTurn = '';
+        var mustEndTurn = false;
+        var stopCombat = false;
+
         var db = new MyMongoBDD();
         await db.connection();
 
@@ -66,15 +65,15 @@ server.listen(8080, function() {
             socket.emit('spawnEnnemies', monsterGroup);
 
             //Tell the other client that a new play have spawn
-            socket.broadcast.emit('spawnPlayer', player);
+            socket.broadcast.emit('spawnAnotherPlayer', player);
 
             //Tell the other client that a new monster has spawn
             socket.broadcast.emit('spawnEnnemies', monsterGroup);
 
-            //I don't see the difference compared to the line right befor but...
+            //Tell our player about the other players
             for (var playerID in players) {
-                if (playerID != thisPlayerID) {
-                    socket.emit('spawn', players[playerID])
+                if (playerID != thisPlayerID && !players[playerID].isInBattle) {
+                    socket.emit('spawnAnotherPlayer', players[playerID])
                 }
             }
 
@@ -126,6 +125,7 @@ server.listen(8080, function() {
             });
 
             socket.on('BattleReadyInClient', function () {
+                console.log("id monster : " + idEnnemyGroupInBattle)
                 SendTurnMessageRec(socket, timeEachTurn, player, monsterGroups[idEnnemyGroupInBattle], 0);
             });
 
@@ -162,7 +162,10 @@ server.listen(8080, function() {
                         for (const monster of monsterGroups[idEnnemyGroupInBattle].monsters.values()) {
                             //If spell has hit
                             if (XY.CircleDistance(monster.positionArrayFight) <= explosiveRange) {
-                                monster.TakeDamage(damage, CheckIfAllEnnemiesAreDead(monsterGroups[idEnnemyGroupInBattle]));
+                                //TODO : See if it's possible to pass the function directly with parameters
+                                monster.TakeDamage(damage, function() {
+                                    CheckIfAllEnnemiesAreDead(monsterGroups[idEnnemyGroupInBattle])
+                                });
                                 monster.GainShieldPoints(shield);
                                 socket.emit('UpdateCharacterStats', monster.GetBaseCaracteristicAsJson());
                                 socket.broadcast.emit('UpdateCharacterStats', monster.GetBaseCaracteristicAsJson());
@@ -224,6 +227,7 @@ server.listen(8080, function() {
                 stopCombat = true;
                 delete players[thisPlayerID];
                 delete sockets[thisPlayerID];
+                delete monsterGroups[thisMonsterGroupID];
                 socket.broadcast.emit('playerDisconnect', player);
             });
 
@@ -235,8 +239,20 @@ server.listen(8080, function() {
                     }
                 }
                 if (allDead) {
+                    stopCombat = true;
+
                     //End the fight
                     console.log("Monster all dead");
+
+                    let endFightData = {
+                        monsterGroupID: thisMonsterGroupID,
+                        positionArrayMain : {
+                            x : player.positionArrayMain.x,
+                            y : player.positionArrayMain.y
+                        }
+                    }
+                    socket.emit('EndFight', endFightData);
+                    delete monsterGroups[thisMonsterGroupID];
                 }
             }
 
@@ -264,7 +280,10 @@ server.listen(8080, function() {
                         socket.emit('UpdateCharacterStats', monsterGroup.monsters[lastCurrentTurn - 1].GetBaseCaracteristicAsJson());
                         socket.broadcast.emit('UpdateCharacterStats', monsterGroup.monsters[lastCurrentTurn - 1].GetBaseCaracteristicAsJson());
                     }
-
+                    //3 seconds turn for ennemies
+                    if (currentTurn > 0) {
+                        currentTime = 3;
+                    }
                 }
 
                 //Create base json with id and timeEachTurn

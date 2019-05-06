@@ -25,9 +25,9 @@ public class NetworkTransform : MonoBehaviour
         m_player = new Player();
         m_player.id = m_networkIdentity.GetID();
 
-        if(!m_networkIdentity.IsControlling()) {
-            enabled = false;
-        }
+        //if(!m_networkIdentity.IsControlling()) {
+        //    enabled = false;
+        //}
     }
 
     public void Update()

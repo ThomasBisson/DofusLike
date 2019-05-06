@@ -112,9 +112,18 @@ public class PlayerFight : PlayerStrategy
     {
         if (m_getGridFight().GetCurrentAction() == GridFight.Action.Spell)
         {
-            m_getGridFight().DeactivateTileInRange((int)m_getSpellTree().GetSpell(idSpell).range);
-            m_getGridFight().SetCurrentAction(GridFight.Action.Movement);
-            m_spellUsedID = "";
+            if (idSpell != m_spellUsedID)
+            {
+                m_getGridFight().DeactivateTileInRange((int)m_getSpellTree().GetSpell(m_spellUsedID).range);
+                m_getGridFight().ActivateTileInRange((int)m_getSpellTree().GetSpell(idSpell).range);
+                m_spellUsedID = idSpell;
+            }
+            else
+            {
+                m_getGridFight().DeactivateTileInRange((int)m_getSpellTree().GetSpell(idSpell).range);
+                m_getGridFight().SetCurrentAction(GridFight.Action.Movement);
+                m_spellUsedID = "";
+            }
         }
         else
         {

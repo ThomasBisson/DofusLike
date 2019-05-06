@@ -136,66 +136,29 @@ public class NetworkClient : MonoBehaviour
             ni.SetSocketReference(this);
             m_serverObjects.Add(id, ni);
 
-            GameManager.Instance.SetAPlayer(ni, args);
+            GameManager.SetAMainPlayer(ni, args);
+        });
 
+        socketManagerRef.Socket.On("spawnAnotherPlayer", (socket, packet, args) =>
+        {
+            Debug.Log("Player : \n" + packet);
 
+            //Get needed values in data
+            var dataPlayer = args[0] as Dictionary<string, object>;
+            var dataCharacteristic = dataPlayer["characteristic"] as Dictionary<string, object>;
 
-            ////Handling all spawning all players
-            //var dataPlayer = args[0] as Dictionary<string, object>;
-            //string id = dataPlayer["id"] as string;
-            //var dataCharacteristic = dataPlayer["characteristic"] as Dictionary<string, object>;
-            //Debug.Log(dataCharacteristic == null);
-            //GameObject go = Instantiate((GameObject)Resources.Load("PlayersPrefabs/" + dataCharacteristic["name"] as string));
-            //go.name = string.Format("Player ({0})", id);
-            //NetworkIdentity ni = go.GetComponent<NetworkIdentity>();
-            //var player = ni.GetComponent<PlayerManagerMain>();
-            //player.m_character = Characters.Character.PLAYER;
-            //if (ni.SetControllerID(id))
-            //{
-            //    player.gameObject.AddComponent<NetworkBattle>();
-            //    player.FindNetworkBattle();
-            //    GameManager.Instance.m_PlayerManagerMain = player;
-            //}
-            //ni.SetSocketReference(this);
-            //m_serverObjects.Add(id, ni);
+            //Create a player from resources
+            GameObject go = Instantiate((GameObject)Resources.Load("OtherPlayersPrefabs/" + dataCharacteristic["name"] as string));
+            string id = dataPlayer["id"] as string;
+            go.name = string.Format("OtherPlayer ({0})", id);
 
-            ////Find HUD
-            //player.FindHUDManager();
+            //Set the NetworkIdentity
+            NetworkIdentity ni = go.GetComponent<NetworkIdentity>();
+            ni.SetControllerID(id);
+            ni.SetSocketReference(this);
+            m_serverObjects.Add(id, ni);
 
-            ////Get the caracteristics of xuchu
-            //player.SetPlayerStats(
-            //    dataCharacteristic["name"] as string,
-            //    (int)(double)dataPlayer["health"],
-            //    (int)(double)dataPlayer["actionPoints"],
-            //    (int)(double)dataPlayer["movementPoints"]
-            //);
-            //player.FindIconInResources();
-            //player.m_stats.SetObservers();
-            //player.m_stats.ActivateObserversFirstTime();
-
-            ////Find given spells
-            //var spellsAsList = dataCharacteristic["myspells"] as List<object>;
-            //foreach (var obj in spellsAsList)
-            //{
-            //    string spellJson = JsonConvert.SerializeObject(obj as Dictionary<string, object>, Formatting.None);
-            //    player.SetSpellTree(spellJson);
-            //}
-
-            ////SetPosition
-            //var dataPos = dataPlayer["positionInWorld"] as Dictionary<string, object>;
-            //float x = (float)(double)dataPos["x"];
-            //float z = (float)(double)dataPos["z"];
-            //player.transform.position = new Vector3(x, player.transform.position.y, z);
-
-            //var dataPosMain = dataPlayer["positionArrayMain"] as Dictionary<string, object>;
-            //float xMain = (float)(double)dataPosMain["x"];
-            //float yMain = (float)(double)dataPosMain["y"];
-            //player.m_positionArrayMain = new Vector2(xMain, yMain);
-
-            //var dataPosFight = dataPlayer["positionArrayFight"] as Dictionary<string, object>;
-            //float xFight = (float)(double)dataPosFight["x"];
-            //float yFight = (float)(double)dataPosFight["y"];
-            //player.m_positionArrayFight = new Vector2(xFight, yFight);
+            GameManager.SetAnotherPlayer(ni, args);
         });
 
         socketManagerRef.Socket.On("spawnEnnemies", (socket, packet, args) =>
@@ -241,7 +204,7 @@ public class NetworkClient : MonoBehaviour
                 niEnnemies.Add(niEnnemy);
             }
 
-            GameManager.Instance.SetAnEnnemy(niGroup, niEnnemies, args);
+            GameManager.SetAnEnnemy(niGroup, niEnnemies, args);
             
         });
 
@@ -280,7 +243,7 @@ public class NetworkClient : MonoBehaviour
         {
             var data = args[0] as Dictionary<string, object>;
             var pos = data["position"] as Dictionary<string, object>;
-            GameManager.Instance.m_playerManager.GetPlayerFight().NewDestination(
+            GameManager.PlayerManager.GetPlayerFight().NewDestination(
                 new Vector2((float)(double)pos["x"], (float)(double)pos["y"])
             );
         });
@@ -330,7 +293,7 @@ public class NetworkClient : MonoBehaviour
             var data = args[0] as Dictionary<string, object>;
             var endPosData = data["endPosition"] as Dictionary<string, object>;
             var playerPosData = data["startPosition"] as Dictionary<string, object>;
-            GameManager.Instance.m_playerManager.GetPlayerFight().ActivateSpell(
+            GameManager.PlayerManager.GetPlayerFight().ActivateSpell(
                 data["spellID"] as string,
                 new Vector2((int)(double)playerPosData["x"], (int)(double)playerPosData["y"]),
                 new Vector2((int)(double)endPosData["x"], (int)(double)endPosData["y"])
@@ -350,6 +313,20 @@ public class NetworkClient : MonoBehaviour
                 if ((character as EnnemyManager) != null)
                     (character as EnnemyManager).SetTime((int)(double)data["timeEachTurn"], (int)(double)data["currentTime"]);
             }
+        });
+
+        socketManagerRef.Socket.On("EndFight", (socket, packet, args) =>
+        {
+            Debug.Log("End battle");
+            var data = args[0] as Dictionary<string, object>;
+            var playerPositionMain = data["positionArrayMain"] as Dictionary<string, object>;
+            string id = data["monsterGroupID"] as string;
+            var tempObject = m_serverObjects[id];
+            m_serverObjects.Remove(id);
+            DestroyImmediate(tempObject.gameObject);
+
+
+
         });
 
         #endregion
