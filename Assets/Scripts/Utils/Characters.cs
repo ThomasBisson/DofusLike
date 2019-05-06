@@ -28,7 +28,7 @@ public class Characters : MonoBehaviour
     protected Sprite m_icon;
 
     /**** Movement *****/
-    protected Animator m_animator;
+
     [SerializeField]
     protected float m_speed = 5f;
     protected Vector3 m_targetPosition;
@@ -43,6 +43,17 @@ public class Characters : MonoBehaviour
     protected int m_maxSecondsAllowed = 0;
     protected int m_secondsLeftInTurn = 0;
 
+    /**** Animation ****/
+    protected Animator m_animator;
+    public Transform m_targetSpellAnimation;
+
+    public GameObject attackBullet;
+    public GameObject magicBullet;
+    public GameObject magic2Bullet;
+    public GameObject ultimateBullet;
+    public GameObject damageEffect1;
+    public GameObject damageEffect2;
+    public GameObject damageEffect3;
 
     #endregion VARS
 
@@ -77,7 +88,7 @@ public class Characters : MonoBehaviour
         if (m_spellTree == null)
             m_spellTree = new SpellTree();
 
-        m_spellTree.TranformJsonToSpell(spellAsJson);
+        m_spellTree.TranformJsonToSpell(spellAsJson, m_animator);
     }
 
     public void SetStats(string name, int health, int actionPoints, int movementPoints)
@@ -205,6 +216,100 @@ public class Characters : MonoBehaviour
                     return true;
         }
         return false;
+    }
+
+    #endregion
+
+    #region Animation
+
+    void preAction(string actionName)
+    {
+        //AttackedController c = GameObject.Find("bigzhangjiao (1)").GetComponent<AttackedController>();
+        string[] arr = actionName.Split('|');
+        string name = arr[0];
+        switch (name)
+        {
+            case AnimationName.Attack:
+                if (attackBullet != null)
+                {
+                    GameObject obj = GameObject.Instantiate(attackBullet);
+                    NormalBullet bullet = obj.GetComponent<NormalBullet>();
+                    bullet.player = transform;
+                    bullet.target = m_targetSpellAnimation;//GameObject.Find("bigzhangjiao (1)").transform;
+                    bullet.effectObj = damageEffect1;
+                    bullet.bulleting();
+                }
+                if (damageEffect1 != null)
+                {
+                    GameObject obj = GameObject.Instantiate(damageEffect1);
+                    ParticlesEffect effect = obj.AddComponent<ParticlesEffect>();
+                    //Transform target = GameObject.Find("bigzhangjiao (1)").transform;
+                    effect.transform.position = m_targetSpellAnimation.position;//MathUtil.findChild(m_target, "attackedPivot").position;
+                    effect.play();
+                }
+                //c.attacked();
+                break;
+            case AnimationName.Magic:
+                if (magicBullet != null)
+                {
+                    GameObject obj = GameObject.Instantiate(magicBullet);
+                    NormalBullet bullet = obj.GetComponent<NormalBullet>();
+                    bullet.player = transform;
+                    bullet.target = m_targetSpellAnimation;//GameObject.Find("bigzhangjiao (1)").transform;
+                    bullet.effectObj = damageEffect1;
+                    bullet.bulleting();
+                }
+                if (damageEffect3 != null)
+                {
+                    GameObject obj = GameObject.Instantiate(damageEffect3);
+                    ParticlesEffect effect = obj.AddComponent<ParticlesEffect>();
+                    //Transform target = GameObject.Find("bigzhangjiao (1)").transform;
+                    effect.transform.position = m_targetSpellAnimation.position;//MathUtil.findChild(m_target, "attackedPivot").position;
+                    effect.play();
+                }
+                //c.attacked();
+                break;
+            case AnimationName.Magic2:
+                if (magic2Bullet != null)
+                {
+                    GameObject obj = GameObject.Instantiate(magic2Bullet);
+                    NormalBullet bullet = obj.GetComponent<NormalBullet>();
+                    bullet.player = transform;
+                    bullet.target = m_targetSpellAnimation;//GameObject.Find("bigzhangjiao (1)").transform;
+                    bullet.effectObj = damageEffect2;
+                    bullet.bulleting();
+                }
+                if (damageEffect2 != null)
+                {
+                    GameObject obj = GameObject.Instantiate(damageEffect2);
+                    ParticlesEffect effect = obj.AddComponent<ParticlesEffect>();
+
+                    effect.transform.position = m_targetSpellAnimation.position;//GameObject.Find("bigzhangjiao (1)").transform.position;
+                    effect.play();
+                }
+                //c.attacked();
+                break;
+            case AnimationName.Ultimate:
+                if (ultimateBullet != null)
+                {
+                    GameObject obj = GameObject.Instantiate(ultimateBullet);
+                    LightBullet bullet = obj.GetComponent<LightBullet>();
+                    bullet.player = transform;
+                    bullet.target = m_targetSpellAnimation;//GameObject.Find("bigzhangjiao (1)").transform;
+                    bullet.effectObj = damageEffect3;
+                    bullet.bulleting();
+                }
+                if (damageEffect2 != null)
+                {
+                    GameObject obj = GameObject.Instantiate(damageEffect2);
+                    ParticlesEffect effect = obj.AddComponent<ParticlesEffect>();
+
+                    effect.transform.position = m_targetSpellAnimation.position;//GameObject.Find("bigzhangjiao (1)").transform.position;
+                    effect.play();
+                }
+                //c.attacked();
+                break;
+        }
     }
 
     #endregion

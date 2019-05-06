@@ -14,6 +14,8 @@ public class PlayerManager : Characters
 
     public NetworkBattle m_networkBattle { get; private set; }
 
+    //private xuchuDemo m_xuchuDemo;
+
     /*************************** TEST STRATEGY *******************/
     public enum PossibleStrategy
     {
@@ -42,12 +44,12 @@ public class PlayerManager : Characters
     {
         base.Awake();
         GetComponent<NetworkTransform>().m_playerManager = this;
+        //m_xuchuDemo = GetComponent<xuchuDemo>();
         DontDestroyOnLoad(this.gameObject);
     }
 
     protected override void Start()
     {
-        //m_strategy = new PlayerMain(this);
     }
 
     protected override void Update()
@@ -106,25 +108,12 @@ public class PlayerManager : Characters
 
     #endregion
 
-    #region Spells
+    #region Spell
 
-
-
-    public void SetHUDSpellButtons()
+    public void SetSpellTarget(Vector2 posTarget)
     {
-        List<string> ids = new List<string>();
-        List<Sprite> sprites = new List<Sprite>();
-
-        for (int i = 0; i < m_spellTree.GetSpells().Count; i++)
-        {
-            ids.Add(i);
-            sprites.Add(Resources.Load<Sprite>("SpellsIcons/" + m_spellTree.GetSpells()[i].name));
-        }
-
-        m_HUDUIManager.SwitchableMana.SwitchableF.SpellAndControlsUI.FillCallbacksAndIconsSpellButtons(() => { GetPlayerFight().HandleSpellButtonClick(); }, ids, sprites);
+        m_targetSpellAnimation = m_gridFight.Map[(int)posTarget.x, (int)posTarget.y].transform;
     }
-
-
 
     #endregion
 
@@ -188,6 +177,7 @@ public class PlayerManager : Characters
     private IEnumerator CheckPosition(string id, Transform ennemy, float aggroRange)
     {
         yield return new WaitUntil(() => {
+            Debug.Log(Vector3.Distance(ennemy.position, transform.position) <= aggroRange);
             return Vector3.Distance(ennemy.position, transform.position) <= aggroRange;
         });
         m_animator.SetBool("isRunning", false);

@@ -8,6 +8,8 @@ public class SpellsAndControls : MonoBehaviour
     [SerializeField]
     private List<SpellButton> m_spellButtons;
 
+    public int NumberOfSpellButton { get { return m_spellButtons.Count; } }
+
     [SerializeField]
     private Button m_endTurnButton;
 
@@ -42,6 +44,12 @@ public class SpellsAndControls : MonoBehaviour
             m_spellButtons[i].SetOnClick(method, ids[i]);
             m_spellButtons[i].SetIcon(sprites[i]);
         }
+    }
+
+    public void SetSpellButton(int idSpellButton, SpellButton.OnClick method, string key, Sprite icon)
+    {
+        m_spellButtons[idSpellButton].SetOnClick(method, key);
+        m_spellButtons[idSpellButton].SetIcon(icon);
     }
 
     public void SetEndTurnButton(UnityEngine.Events.UnityAction func)

@@ -48,6 +48,7 @@ public class PlayerFight : PlayerStrategy
         m_playerManager.m_networkBattle.SendBattleReadyInClient();
     }
 
+
     #endregion
 
     #region Methods
@@ -90,6 +91,23 @@ public class PlayerFight : PlayerStrategy
 
     #region Spells
 
+    public void SetHUDSpellButtons()
+    {
+        List<string> ids = new List<string>();
+        List<Sprite> sprites = new List<Sprite>();
+        foreach (var keyValuePair in m_getSpellTree().GetSpells())
+        {
+
+            //m_HUDUIManager.SwitchableMana.SwitchableF.SpellAndControlsUI.SetSpellButton(counter, GetPlayerFight().HandleSpellButtonClick, key)
+
+            ids.Add(m_getSpellTree().GetSpell(keyValuePair.Key)._id);
+            sprites.Add(m_getSpellTree().GetSpell(keyValuePair.Key).icon);
+            //counter++;
+        }
+
+        m_playerManager.m_HUDUIManager.SwitchableMana.SwitchableF.SpellAndControlsUI.FillCallbacksAndIconsSpellButtons(HandleSpellButtonClick, ids, sprites);
+    }
+
     public void HandleSpellButtonClick(string idSpell)
     {
         if (m_getGridFight().GetCurrentAction() == GridFight.Action.Spell)
@@ -128,6 +146,13 @@ public class PlayerFight : PlayerStrategy
         m_spellUsedID = "";
 
     }
+
+    public void ActivateSpell(string spellKey, Vector2 playerPos, Vector2 endPos)
+    {
+        m_playerManager.SetSpellTarget(endPos);
+        m_getSpellTree().ActivateSpellFX(spellKey);
+    }
+
 
     #endregion
 

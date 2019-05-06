@@ -61,4 +61,16 @@ public class SpellTree
     }
 
     public Spell GetSpell(string key) { return m_spells[key]; }
+
+    public void ActivateSpellFX(string key)
+    {
+        if (m_spellAnimation.ContainsKey(key))
+            m_spellAnimation[key]();
+    }
+
+    //TODO : Find a better way to access keys and icons, it shoudn't be possible with a getter
+    public Dictionary<string, Spell> GetSpells()
+    {
+        return m_spells;
+    }
 }

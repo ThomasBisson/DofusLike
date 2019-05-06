@@ -78,9 +78,4 @@ public class SwitchableFight : MonoBehaviour
         m_turnInFight.PopulateTurnInFightBar(characters);
     }
 
-    public void FillCallbacksAndIconsSpellButtons(SpellButton.OnClick method, List<int> ids, List<Sprite> sprites)
-    {
-        m_spellsAndControls.FillCallbacksAndIconsSpellButtons(method, ids, sprites);
-    }
-
 }

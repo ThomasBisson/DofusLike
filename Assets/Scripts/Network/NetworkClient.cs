@@ -327,6 +327,14 @@ public class NetworkClient : MonoBehaviour
         socketManagerRef.Socket.On("SpellHasHit", (socket, packet, args) =>
         {
             Debug.Log(packet);
+            var data = args[0] as Dictionary<string, object>;
+            var endPosData = data["endPosition"] as Dictionary<string, object>;
+            var playerPosData = data["startPosition"] as Dictionary<string, object>;
+            GameManager.Instance.m_playerManager.GetPlayerFight().ActivateSpell(
+                data["spellID"] as string,
+                new Vector2((int)(double)playerPosData["x"], (int)(double)playerPosData["y"]),
+                new Vector2((int)(double)endPosData["x"], (int)(double)endPosData["y"])
+            );
         });
 
 

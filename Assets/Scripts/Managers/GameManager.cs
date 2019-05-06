@@ -74,7 +74,6 @@ public class GameManager : MonoBehaviour
             string spellJson = JsonConvert.SerializeObject(obj as Dictionary<string, object>, Formatting.None);
             player.SetSpellTree(spellJson);
         }
-        player.SetHUDSpellButtons();
 
         //SetPosition
         var dataPos = dataPlayer["positionInWorld"] as Dictionary<string, object>;
@@ -109,6 +108,7 @@ public class GameManager : MonoBehaviour
 
 
         //Create EnnemyGroup
+        DestroyImmediate(niEnnemyGroup.GetComponent<EnnemyManager>());
         EnnemyGroup ennemyGroup = niEnnemyGroup.gameObject.AddComponent<EnnemyGroup>();
         ennemyGroup.ActivateMainMode();
 
@@ -119,7 +119,7 @@ public class GameManager : MonoBehaviour
         for (int i = 0; i < dataEnnemies.Count; i++)
         {
             //Add EnnemyManager
-            ennemy = niEnnemies[i].gameObject.AddComponent<EnnemyManager>();
+            ennemy = niEnnemies[i].gameObject.GetComponent<EnnemyManager>();
             ennemy.m_character = Characters.Character.ENNEMY;
 
             //Set Stats

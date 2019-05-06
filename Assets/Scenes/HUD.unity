@@ -430,7 +430,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &43944219
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -561,7 +561,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &56642928
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -966,7 +966,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.3}
   m_AnchorMax: {x: 1, y: 0.975}
-  m_AnchoredPosition: {x: 0, y: -0.14249802}
+  m_AnchoredPosition: {x: 0, y: -0.14250183}
   m_SizeDelta: {x: 0, y: 0.4849987}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &157388096
@@ -1272,7 +1272,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &200289580
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2094,7 +2094,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &449026701
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2342,7 +2342,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &468317574
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2645,7 +2645,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &492631062
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3834,7 +3834,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &712355013
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4291,7 +4291,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &892348742
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4712,7 +4712,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &954425579
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4843,7 +4843,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &967946869
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4974,7 +4974,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &973487257
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5175,7 +5175,7 @@ MonoBehaviour:
   m_spellsAndControls: {fileID: 1433922012}
   m_othersInfos: {fileID: 471877758}
   m_turnInFight: {fileID: 601236913}
-  m_leftTopIcon: {fileID: 1377267926}
+  m_leftTopIcon: {fileID: 1963596646}
 --- !u!222 &1036753169
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -6071,7 +6071,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.34, y: 0.075}
   m_AnchorMax: {x: 0.68, y: 0.425}
-  m_AnchoredPosition: {x: 0.20000076, y: 0}
+  m_AnchoredPosition: {x: 0.19999695, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1261312959
@@ -6433,7 +6433,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &1268512778
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8068,7 +8068,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &1532759873
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8433,7 +8433,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &1710534772
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8564,7 +8564,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &1731240765
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8695,7 +8695,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &1780700791
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8826,7 +8826,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &1796619415
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9130,7 +9130,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &1836139696
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9380,7 +9380,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &1882007134
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9598,7 +9598,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b82ea6345cd6164fbebb61da63cd42b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_spellIDInSpellList: 0
+  m_spellID: 
 --- !u!114 &1958062474
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -54,9 +54,4 @@ public class SwitchableManager : MonoBehaviour
         m_switchableFight.gameObject.SetActive(false);
         m_switchableMain.gameObject.SetActive(true);
     }
-
-    public void FillCallbacksAndIconsSpellButtons(SpellButton.OnClick method, List<int> ids, List<Sprite> sprites)
-    {
-        m_switchableFight.FillCallbacksAndIconsSpellButtons(method, ids, sprites);
-    }
 }
