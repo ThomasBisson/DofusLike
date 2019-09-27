@@ -31,7 +31,7 @@ namespace BestHTTP.Forms
         public override void PrepareRequest(HTTPRequest request)
         {
             // Set up Content-Type header for the request
-            request.SetHeader("Content-Type", "multipart/form-data; boundary=\"" + Boundary + "\"");
+            request.SetHeader("Content-Type", "multipart/form-data; boundary=" + Boundary);
         }
 
         public override byte[] GetData()

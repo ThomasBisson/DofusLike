@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-#if NETFX_CORE || BUILD_FOR_WP8
+#if NETFX_CORE
     using System.Threading.Tasks;
 #endif
 

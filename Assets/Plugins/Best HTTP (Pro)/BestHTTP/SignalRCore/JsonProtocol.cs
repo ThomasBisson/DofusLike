@@ -85,20 +85,72 @@ namespace BestHTTP.SignalRCore
         public byte[] EncodeMessage(Message message)
         {
             string json = null;
+
+            // While message contains all informations already, the spec states that no additional field are allowed in messages
+            //  So we are creating 'specialized' messages here to send to the server.
             switch (message.type)
             {
-                case MessageTypes.Invocation:
-                case MessageTypes.StreamInvocation:
-                    // While message contains all informations already, the spec states that no additional field are allowed in messages
-                    //  So we are creating 'specialized' messages here to send to the server.
-                    json = this.Encoder.EncodeAsText<InvocationMessage>(new InvocationMessage()
+                case MessageTypes.StreamItem:
+                    json = this.Encoder.EncodeAsText<StreamItemMessage>(new StreamItemMessage()
                     {
                         type = message.type,
                         invocationId = message.invocationId,
-                        nonblocking = message.nonblocking,
-                        target = message.target,
-                        arguments = message.arguments
+                        item = message.item
                     });
+                    break;
+
+                case MessageTypes.Completion:
+                    if (!string.IsNullOrEmpty(message.error))
+                    {
+                        json = this.Encoder.EncodeAsText<CompletionWithError>(new CompletionWithError()
+                        {
+                            type = MessageTypes.Completion,
+                            invocationId = message.invocationId,
+                            error = message.error
+                        });
+                    }
+                    else if (message.result != null)
+                    {
+                        json = this.Encoder.EncodeAsText<CompletionWithResult>(new CompletionWithResult()
+                        {
+                            type = MessageTypes.Completion,
+                            invocationId = message.invocationId,
+                            result = message.result
+                        });
+                    }
+                    else
+                        json = this.Encoder.EncodeAsText<Completion>(new Completion()
+                        {
+                            type = MessageTypes.Completion,
+                            invocationId = message.invocationId
+                        });
+                    break;
+
+                case MessageTypes.Invocation:
+                case MessageTypes.StreamInvocation:
+                    if (message.streamIds != null)
+                    {
+                        json = this.Encoder.EncodeAsText<UploadInvocationMessage>(new UploadInvocationMessage()
+                        {
+                            type = message.type,
+                            invocationId = message.invocationId,
+                            nonblocking = message.nonblocking,
+                            target = message.target,
+                            arguments = message.arguments,
+                            streamIds = message.streamIds
+                        });
+                    }
+                    else
+                    {
+                        json = this.Encoder.EncodeAsText<InvocationMessage>(new InvocationMessage()
+                        {
+                            type = message.type,
+                            invocationId = message.invocationId,
+                            nonblocking = message.nonblocking,
+                            target = message.target,
+                            arguments = message.arguments
+                        });
+                    }
                     break;
 
                 case MessageTypes.CancelInvocation:
@@ -136,15 +188,35 @@ namespace BestHTTP.SignalRCore
         {
             if (obj == null)
                 return null;
-#if NETFX_CORE //|| NET_4_6
-            if (toType.GetTypeInfo().IsPrimitive || toType.GetTypeInfo().IsEnum)
+
+#if NETFX_CORE
+            TypeInfo typeInfo = toType.GetTypeInfo();
+#endif
+
+#if NETFX_CORE
+            if (typeInfo.IsEnum)
 #else
-            if (toType.IsPrimitive || toType.IsEnum)
+            if (toType.IsEnum)
+#endif
+                return Enum.Parse(toType, obj.ToString(), true);
+
+#if NETFX_CORE
+            if (typeInfo.IsPrimitive)
+#else
+            if (toType.IsPrimitive)
 #endif
                 return Convert.ChangeType(obj, toType);
 
             if (toType == typeof(string))
                 return obj.ToString();
+
+#if NETFX_CORE
+            if (typeInfo.IsGenericType && toType.Name == "Nullable`1")
+                return Convert.ChangeType(obj, toType.GenericTypeArguments[0]);
+#else
+            if (toType.IsGenericType && toType.Name == "Nullable`1")
+                return Convert.ChangeType(obj, toType.GetGenericArguments()[0]);
+#endif
 
             return this.Encoder.ConvertTo(toType, obj);
         }

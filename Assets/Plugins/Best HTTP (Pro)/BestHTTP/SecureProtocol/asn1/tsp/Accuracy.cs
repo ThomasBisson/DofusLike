@@ -56,9 +56,9 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Tsp
 				{
 					seconds = (DerInteger) seq[i];
 				}
-				else if (seq[i] is DerTaggedObject)
+                else if (seq[i] is Asn1TaggedObject)
 				{
-					DerTaggedObject extra = (DerTaggedObject) seq[i];
+                    Asn1TaggedObject extra = (Asn1TaggedObject)seq[i];
 
 					switch (extra.TagNo)
 					{
@@ -128,27 +128,14 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Tsp
 		 *             }
 		 * </pre>
 		 */
-		public override Asn1Object ToAsn1Object()
-		{
-			Asn1EncodableVector v = new Asn1EncodableVector();
-
-			if (seconds != null)
-			{
-				v.Add(seconds);
-			}
-
-			if (millis != null)
-			{
-				v.Add(new DerTaggedObject(false, 0, millis));
-			}
-
-			if (micros != null)
-			{
-				v.Add(new DerTaggedObject(false, 1, micros));
-			}
-
-			return new DerSequence(v);
-		}
+        public override Asn1Object ToAsn1Object()
+        {
+            Asn1EncodableVector v = new Asn1EncodableVector();
+            v.AddOptional(seconds);
+            v.AddOptionalTagged(false, 0, millis);
+            v.AddOptionalTagged(false, 1, micros);
+            return new DerSequence(v);
+        }
 	}
 }
 #pragma warning restore

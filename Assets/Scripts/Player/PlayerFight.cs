@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using ThomasBisson.Mathematics;
 using UnityEngine;
@@ -9,9 +10,6 @@ public class PlayerFight : PlayerStrategy
 
     public delegate GridFight GetGridFight();
     private GetGridFight m_getGridFight;
-
-    public delegate Transform GetTransform();
-    private GetTransform m_getTransform;
 
     public delegate SpellTree GetSpellTree();
     private GetSpellTree m_getSpellTree;
@@ -28,17 +26,16 @@ public class PlayerFight : PlayerStrategy
 
     }
 
-    public void SetGetterCallbacks(GetGridFight getGridFight, GetTransform getTransform, GetSpellTree getSpellTree)
+    public void SetGetterCallbacks(GetGridFight getGridFight, GetSpellTree getSpellTree)
     {
         m_getGridFight = getGridFight;
-        m_getTransform = getTransform;
         m_getSpellTree = getSpellTree;
     }
 
     public override void Start()
     {
         m_getGridFight().m_playerManager = m_playerManager;
-        m_getTransform().position = m_getGridFight().Map[(int)m_playerManager.m_positionArrayFight.x, (int)m_playerManager.m_positionArrayFight.y].transform.position;
+        m_playerManager.transform.position = m_getGridFight().Map[(int)m_playerManager.m_positionArrayFight.x, (int)m_playerManager.m_positionArrayFight.y].transform.position;
         m_playerManager.m_HUDUIManager.SwitchableMana.SwitchableF.SpellAndControlsUI.SetEndTurnButton(() =>
         {
             if (m_playerManager.IsItsTurn())
@@ -53,12 +50,12 @@ public class PlayerFight : PlayerStrategy
 
     #region Methods
 
-    #region Movements
-
-    public override void HandleClickOnGround()
+    public override void Update()
     {
         
     }
+
+    #region Movements
 
     public bool CanMove(int movementPointUsed)
     {
@@ -69,9 +66,9 @@ public class PlayerFight : PlayerStrategy
 
     public override void RandomizePlayerPosition(bool mustTeleportPlayer)
     {
-        m_playerManager.m_positionArrayFight = new Vector2(Random.Range(0, m_getGridFight().Map.GetLength(0)), Random.Range(0, m_getGridFight().Map.GetLength(1)));
+        m_playerManager.m_positionArrayFight = new Vector2(UnityEngine.Random.Range(0, m_getGridFight().Map.GetLength(0)), UnityEngine.Random.Range(0, m_getGridFight().Map.GetLength(1)));
         if (mustTeleportPlayer)
-            m_getTransform().position = m_getGridFight().Map[(int)m_playerManager.m_positionArrayFight.x, (int)m_playerManager.m_positionArrayFight.y].transform.position;
+            m_playerManager.transform.position = m_getGridFight().Map[(int)m_playerManager.m_positionArrayFight.x, (int)m_playerManager.m_positionArrayFight.y].transform.position;
     }
 
     //TODO : make him go tile by tile from combat
@@ -156,12 +153,62 @@ public class PlayerFight : PlayerStrategy
 
     }
 
-    public void ActivateSpell(string spellKey, Vector2 playerPos, Vector2 endPos)
+    public void ActivateSpell(string spellID, Vector2 playerPos, Vector2 endPos)
     {
         m_playerManager.SetSpellTarget(endPos);
-        m_getSpellTree().ActivateSpellFX(spellKey);
+        m_getSpellTree().ActivateSpellFX(spellID);
     }
 
+    #region Event
+
+    public delegate void SpellCooldownEventHandler(Dictionary<String, float> spellCooldownAsPercent);
+    protected event SpellCooldownEventHandler m_spellCooldownsEvents;
+ 
+    public void SubscribeToSpellCooldownEvents(SpellCooldownEventHandler newObserver)
+    {
+        if (!IsObserverSpellCooldownInList(newObserver))
+        {
+            m_spellCooldownsEvents += new SpellCooldownEventHandler(newObserver);
+            m_spellCooldownsEvents.Invoke(GetSpellCooldownsAsPercent());
+        }
+    }
+
+    public void UnsubscribeToSpellCooldownEvents(SpellCooldownEventHandler newObserver)
+    {
+        if (IsObserverSpellCooldownInList(newObserver))
+        {
+            m_spellCooldownsEvents -= new SpellCooldownEventHandler(newObserver);
+        }
+    }
+
+    private bool IsObserverSpellCooldownInList(SpellCooldownEventHandler newObserver)
+    {
+        if (m_spellCooldownsEvents != null)
+        {
+            foreach (var existingHandler in m_spellCooldownsEvents.GetInvocationList())
+                if (Delegate.Equals(existingHandler, newObserver))//existingHandler == newObserver) //If it doesn't work use : if(objA.Method.Name == objB.Method.Name && objA.Target.GetType().FullName == objB.Target.GetType().FullName) OR Delegate.Equals(objA, objB)
+                    return true;
+        }
+        return false;
+    }
+
+    private Dictionary<String, float> GetSpellCooldownsAsPercent()
+    {
+        Dictionary<String, float> dic = new Dictionary<string, float>();
+        foreach (KeyValuePair<string, Spell> spell in m_getSpellTree().GetSpells())
+            dic.Add(spell.Value._id, MathsUtils.PercentValueFromAnotherValue((float)spell.Value.m_turnCooling, (float)spell.Value.cooldown) / 100f);
+        return dic;
+    }
+
+    public void SetSpellActualCooldown(Dictionary<String, float> actualCooldown)
+    {
+        foreach(var Spell in actualCooldown)
+            m_playerManager.SetSpellActualCooldown(Spell.Key, Spell.Value);
+
+        m_spellCooldownsEvents.Invoke(GetSpellCooldownsAsPercent());
+    }
+
+    #endregion
 
     #endregion
 

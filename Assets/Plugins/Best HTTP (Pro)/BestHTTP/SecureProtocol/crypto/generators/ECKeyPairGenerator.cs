@@ -107,7 +107,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Generators
             {
                 d = new BigInteger(n.BitLength, random);
 
-                if (d.CompareTo(BigInteger.Two) < 0 || d.CompareTo(n) >= 0)
+                if (d.CompareTo(BigInteger.One) < 0 || d.CompareTo(n) >= 0)
                     continue;
 
                 if (WNafUtilities.GetNafWeight(d) < minWeight)

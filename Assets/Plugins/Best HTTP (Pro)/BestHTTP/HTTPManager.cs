@@ -19,7 +19,7 @@ namespace BestHTTP
         // Static constructor. Setup default values
         static HTTPManager()
         {
-            MaxConnectionPerServer = 4;
+            MaxConnectionPerServer = 6;
             KeepAliveDefaultValue = true;
             MaxPathLength = 255;
             MaxConnectionIdleTime = TimeSpan.FromSeconds(20);
@@ -194,7 +194,7 @@ namespace BestHTTP
         /// <summary>
         /// Setting this option to true, the processing connection will set the TCP NoDelay option to send out data as soon as it can.
         /// </summary>
-        public static bool TryToMinimizeTCPLatency = false;
+        public static bool TryToMinimizeTCPLatency = true;
 
         public static int SendBufferSize = 65 * 1024;
         public static int ReceiveBufferSize = 65 * 1024;
@@ -209,6 +209,11 @@ namespace BestHTTP
         /// exposed here and can be overridden. It's default value is 255.
         /// </summary>
         internal static int MaxPathLength { get; set; }
+
+        /// <summary>
+        /// User-agent string that will be sent with each requests.
+        /// </summary>
+        public static string UserAgent = "BestHTTP 1.12.3";
 
         #endregion
 
@@ -657,7 +662,14 @@ namespace BestHTTP
                                             }
                                         }
                                     }
-                                    break;
+
+                                    if (conn.CurrentRequest != null)
+                                    {
+                                        // Still process any callbacks.
+                                        goto case HTTPConnectionStates.Processing;
+                                    }
+                                    else
+                                        break;
 
                                 case HTTPConnectionStates.Closed:
                                     // If it's a streamed request, it's finished now

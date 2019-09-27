@@ -51,5 +51,23 @@ namespace BestHTTP.Extensions
         {
             this.startIdx = this.endIdx = 0;
         }
+
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder("[");
+
+            int idx = this.startIdx;
+            while (idx != this.endIdx)
+            {
+                sb.Append(this.buffer[idx].ToString());
+
+                idx = (idx + 1) % this.Capacity;
+                if (idx != this.endIdx)
+                    sb.Append("; ");
+            }
+            sb.Append("]");
+
+            return sb.ToString();
+        }
     }
 }

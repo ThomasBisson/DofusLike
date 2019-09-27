@@ -30,13 +30,14 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.EC.Multiplier
             BigInteger[] ab = glvEndomorphism.DecomposeScalar(k.Mod(n));
             BigInteger a = ab[0], b = ab[1];
 
-            ECPointMap pointMap = glvEndomorphism.PointMap;
             if (glvEndomorphism.HasEfficientPointMap)
             {
-                return ECAlgorithms.ImplShamirsTrickWNaf(p, a, pointMap, b);
+                return ECAlgorithms.ImplShamirsTrickWNaf(glvEndomorphism, p, a, b);
             }
 
-            return ECAlgorithms.ImplShamirsTrickWNaf(p, a, pointMap.Map(p), b);
+            ECPoint q = EndoUtilities.MapPoint(glvEndomorphism, p);
+
+            return ECAlgorithms.ImplShamirsTrickWNaf(p, a, q, b);
         }
     }
 }

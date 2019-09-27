@@ -6,6 +6,7 @@ using System.Threading;
 
 using System.Text;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 
 namespace BestHTTP.ServerSentEvents
 {
@@ -27,11 +28,6 @@ namespace BestHTTP.ServerSentEvents
         #region Privates
 
         /// <summary>
-        /// Thread sync object
-        /// </summary>
-        private object FrameLock = new object();
-
-        /// <summary>
         /// Buffer for the read data.
         /// </summary>
         private byte[] LineBuffer;
@@ -49,7 +45,7 @@ namespace BestHTTP.ServerSentEvents
         /// <summary>
         /// Completed messages that waiting to be dispatched
         /// </summary>
-        private List<BestHTTP.ServerSentEvents.Message> CompletedMessages = new List<BestHTTP.ServerSentEvents.Message>();
+        private ConcurrentQueue<BestHTTP.ServerSentEvents.Message> CompletedMessages = new ConcurrentQueue<BestHTTP.ServerSentEvents.Message>();
 
         #endregion
 
@@ -251,8 +247,7 @@ namespace BestHTTP.ServerSentEvents
             {
                 if (CurrentMessage != null)
                 {
-                    lock (FrameLock)
-                        CompletedMessages.Add(CurrentMessage);
+                    CompletedMessages.Enqueue(CurrentMessage);
                     CurrentMessage = null;
                 }
 
@@ -340,33 +335,26 @@ namespace BestHTTP.ServerSentEvents
 
         void IProtocol.HandleEvents()
         {
-            lock(FrameLock)
+            // Send out messages.
+            if (OnMessage != null)
             {
-                // Send out messages.
-                if (CompletedMessages.Count > 0)
+                Message message;
+                while (this.CompletedMessages.TryDequeue(out message))
                 {
-                    if (OnMessage != null)
-                        for (int i = 0; i < CompletedMessages.Count; ++i)
-                        {
-                            try
-                            {
-                                OnMessage(this, CompletedMessages[i]);
-                            }
-                            catch(Exception ex)
-                            {
-                                HTTPManager.Logger.Exception("EventSourceMessage", "HandleEvents - OnMessage", ex);
-                            }
-                        }
-
-                    CompletedMessages.Clear();
+                    try
+                    {
+                        OnMessage(this, message);
+                    }
+                    catch (Exception ex)
+                    {
+                        HTTPManager.Logger.Exception("EventSourceMessage", "HandleEvents - OnMessage", ex);
+                    }
                 }
             }
 
             // We are closed
             if (IsClosed)
             {
-                CompletedMessages.Clear();
-
                 if (OnClosed != null)
                 {
                     try

@@ -67,17 +67,12 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Tsp
 		 *   timeStampToken          TimeStampToken     OPTIONAL  }
 		 * </pre>
 		 */
-		public override Asn1Object ToAsn1Object()
-		{
-			Asn1EncodableVector v = new Asn1EncodableVector(pkiStatusInfo);
-
-			if (timeStampToken != null)
-			{
-				v.Add(timeStampToken);
-			}
-
-			return new DerSequence(v);
-		}
+        public override Asn1Object ToAsn1Object()
+        {
+            Asn1EncodableVector v = new Asn1EncodableVector(pkiStatusInfo);
+            v.AddOptional(timeStampToken);
+            return new DerSequence(v);
+        }
 	}
 }
 #pragma warning restore

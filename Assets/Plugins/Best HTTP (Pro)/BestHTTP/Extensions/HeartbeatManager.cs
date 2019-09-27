@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace BestHTTP.Extensions
 {
@@ -15,23 +16,37 @@ namespace BestHTTP.Extensions
     /// </summary>
     public sealed class HeartbeatManager
     {
+        private ReaderWriterLockSlim rwLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+
         private List<IHeartbeat> Heartbeats = new List<IHeartbeat>();
         private IHeartbeat[] UpdateArray;
         private DateTime LastUpdate = DateTime.MinValue;
 
         public void Subscribe(IHeartbeat heartbeat)
         {
-            lock (Heartbeats)
+            rwLock.EnterWriteLock();
+            try
             {
                 if (!Heartbeats.Contains(heartbeat))
                     Heartbeats.Add(heartbeat);
+            }
+            finally
+            {
+                rwLock.ExitWriteLock();
             }
         }
 
         public void Unsubscribe(IHeartbeat heartbeat)
         {
-            lock (Heartbeats)
+            rwLock.EnterWriteLock();
+            try
+            {
                 Heartbeats.Remove(heartbeat);
+            }
+            finally
+            {
+                rwLock.ExitWriteLock();
+            }
         }
 
         public void Update()
@@ -45,7 +60,8 @@ namespace BestHTTP.Extensions
                 
                 int count = 0;
 
-                lock (Heartbeats)
+                rwLock.EnterReadLock();
+                try
                 {
                     if (UpdateArray == null || UpdateArray.Length < Heartbeats.Count)
                         Array.Resize(ref UpdateArray, Heartbeats.Count);
@@ -53,6 +69,10 @@ namespace BestHTTP.Extensions
                     Heartbeats.CopyTo(0, UpdateArray, 0, Heartbeats.Count);
 
                     count = Heartbeats.Count;
+                }
+                finally
+                {
+                    rwLock.ExitReadLock();
                 }
 
                 for (int i = 0; i < count; ++i)

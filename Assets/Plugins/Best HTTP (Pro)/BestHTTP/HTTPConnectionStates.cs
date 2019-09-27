@@ -4,7 +4,7 @@
     /// Possible states of a Http Connection.
     /// The ideal lifecycle of a connection that has KeepAlive is the following: Initial => [Processing => WaitForRecycle => Free] => Closed.
     /// </summary>
-    internal enum HTTPConnectionStates
+    public enum HTTPConnectionStates
     {
         /// <summary>
         /// This Connection instance is just created.

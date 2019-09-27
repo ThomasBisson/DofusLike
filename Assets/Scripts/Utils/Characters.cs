@@ -101,13 +101,13 @@ public class Characters : MonoBehaviour
         m_spellTree.TranformJsonToSpell(spellAsJson, m_animator);
     }
 
-    public void SetSpellTree(List<object> spells)
+    public void SetSpellTree(Dictionary<String, object> spells)//List<object> spells)
     {
         Spell spell;
         Dictionary<string, object> d;
         foreach (var o in spells)
         {
-            d = o as Dictionary<string, object>;
+            d = o.Value as Dictionary<string, object>;
             spell = new Spell();
             spell._id = d["_id"] as string;
             spell.name = d["name"] as string;
@@ -127,21 +127,6 @@ public class Characters : MonoBehaviour
             m_spellTree.AddSpell(spell, m_animator);
         }
     }
-
-    //TODO : REMOVE ! VA SAVOIR PUTAIN DE POURQUOI MAIS JSONCONVERT BUG EN BUILD
-    //public void SetSpellTree(string spellAsJson)
-    //{
-    //    _id;
-    //    name;
-    //    actionPointsConsuption;
-    //    damage;
-    //    range;
-    //    explosiveRange;
-    //    shield;
-    //    shieldDuration;
-    //    cooldown;
-    //    animationKind;
-    //}
 
     public void SetStats(string name, int health, int actionPoints, int movementPoints)
     {
@@ -254,6 +239,16 @@ public class Characters : MonoBehaviour
     private float GetTimeAsPercent()
     {
         return ThomasBisson.Mathematics.MathsUtils.PercentValueFromAnotherValue((float)m_secondsLeftInTurn, (float)m_maxSecondsAllowed);
+    }
+
+    #endregion
+
+    #region Spell
+
+    public void SetSpellActualCooldown(String spellID, float actualCooldown)
+    {
+        if (m_spellTree.GetSpells().ContainsKey(spellID))
+            m_spellTree.GetSpells()[spellID].m_turnCooling = (int)actualCooldown;
     }
 
     #endregion

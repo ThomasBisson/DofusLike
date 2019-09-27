@@ -641,7 +641,7 @@ namespace BestHTTP
 #endif
             this.TryToMinimizeTCPLatency = HTTPManager.TryToMinimizeTCPLatency;
 
-#if UNITY_WEBGL
+#if UNITY_WEBGL && !BESTHTTP_DISABLE_COOKIES
             this.WithCredentials = this.IsCookiesEnabled;
 #endif
         }
@@ -917,8 +917,8 @@ namespace BestHTTP
             if (!HasHeader("TE"))
                 AddHeader("TE", "identity");
 
-            if (!HasHeader("User-Agent"))
-                AddHeader("User-Agent", "BestHTTP");
+            if (!string.IsNullOrEmpty(HTTPManager.UserAgent) && !HasHeader("User-Agent"))
+                AddHeader("User-Agent", HTTPManager.UserAgent);
 #endif
             long contentLength = -1;
 

@@ -205,7 +205,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities
         public static string ToString(
             object[] a)
         {
-            StringBuilder sb = new StringBuilder('[');
+            StringBuilder sb = new StringBuilder("[");
             if (a.Length > 0)
             {
                 sb.Append(a[0]);
@@ -722,6 +722,20 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities
             }
 
             return result;
+        }
+
+        public static bool IsNullOrContainsNull(object[] array)
+        {
+            if (null == array)
+                return true;
+
+            int count = array.Length;
+            for (int i = 0; i < count; ++i)
+            {
+                if (null == array[i])
+                    return true;
+            }
+            return false;
         }
     }
 }

@@ -9,7 +9,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Modes
     /**
     * implements Cipher-Block-Chaining (CBC) mode on top of a simple cipher.
     */
-    public sealed class CbcBlockCipher
+    public class CbcBlockCipher
 		: IBlockCipher
     {
         private byte[]			IV, cbcV, cbcNextV;

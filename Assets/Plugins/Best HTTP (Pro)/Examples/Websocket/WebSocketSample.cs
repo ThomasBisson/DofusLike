@@ -67,11 +67,11 @@ namespace BestHTTP.Examples
                         webSocket = new WebSocket.WebSocket(new Uri(address));
 
 #if !UNITY_WEBGL
-                    webSocket.StartPingThread = true;
+                        webSocket.StartPingThread = true;
 
 #if !BESTHTTP_DISABLE_PROXY
-                    if (HTTPManager.Proxy != null)
-                        webSocket.InternalRequest.Proxy = new HTTPProxy(HTTPManager.Proxy.Address, HTTPManager.Proxy.Credentials, false);
+                        if (HTTPManager.Proxy != null)
+                            webSocket.InternalRequest.Proxy = new HTTPProxy(HTTPManager.Proxy.Address, HTTPManager.Proxy.Credentials, false);
 #endif
 #endif
 

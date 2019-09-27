@@ -163,6 +163,31 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.Raw
             return (uint)c;
         }
 
+        public static uint AddTo(int len, uint[] x, int xOff, uint[] z, int zOff, uint cIn)
+        {
+            ulong c = cIn;
+            for (int i = 0; i < len; ++i)
+            {
+                c += (ulong)x[xOff + i] + z[zOff + i];
+                z[zOff + i] = (uint)c;
+                c >>= 32;
+            }
+            return (uint)c;
+        }
+
+        public static uint AddToEachOther(int len, uint[] u, int uOff, uint[] v, int vOff)
+        {
+            ulong c = 0;
+            for (int i = 0; i < len; ++i)
+            {
+                c += (ulong)u[uOff + i] + v[vOff + i];
+                u[uOff + i] = (uint)c;
+                v[vOff + i] = (uint)c;
+                c >>= 32;
+            }
+            return (uint)c;
+        }
+
         public static uint AddWordAt(int len, uint x, uint[] z, int zPos)
         {
             Debug.Assert(zPos <= (len - 1));
@@ -272,6 +297,23 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.Raw
             Array.Copy(x, xOff, z, zOff, len);
         }
 
+        public static ulong[] Copy64(int len, ulong[] x)
+        {
+            ulong[] z = new ulong[len];
+            Array.Copy(x, 0, z, 0, len);
+            return z;
+        }
+
+        public static void Copy64(int len, ulong[] x, ulong[] z)
+        {
+            Array.Copy(x, 0, z, 0, len);
+        }
+
+        public static void Copy64(int len, ulong[] x, int xOff, ulong[] z, int zOff)
+        {
+            Array.Copy(x, xOff, z, zOff, len);
+        }
+
         public static uint[] Create(int len)
         {
             return new uint[len];
@@ -280,6 +322,32 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.Raw
         public static ulong[] Create64(int len)
         {
             return new ulong[len];
+        }
+
+        public static int CSub(int len, int mask, uint[] x, uint[] y, uint[] z)
+        {
+            long MASK = (uint)-(mask & 1);
+            long c = 0;
+            for (int i = 0; i < len; ++i)
+            {
+                c += (long)x[i] - (y[i] & MASK);
+                z[i] = (uint)c;
+                c >>= 32;
+            }
+            return (int)c;
+        }
+
+        public static int CSub(int len, int mask, uint[] x, int xOff, uint[] y, int yOff, uint[] z, int zOff)
+        {
+            long MASK = (uint)-(mask & 1);
+            long c = 0;
+            for (int i = 0; i < len; ++i)
+            {
+                c += (long)x[xOff + i] - (y[yOff + i] & MASK);
+                z[zOff + i] = (uint)c;
+                c >>= 32;
+            }
+            return (int)c;
         }
 
         public static int Dec(int len, uint[] z)
@@ -365,6 +433,22 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.Raw
             {
                 z[i++] = (uint)x.IntValue;
                 x = x.ShiftRight(32);
+            }
+            return z;
+        }
+
+        public static ulong[] FromBigInteger64(int bits, BigInteger x)
+        {
+            if (x.SignValue < 0 || x.BitLength > bits)
+                throw new ArgumentException();
+
+            int len = (bits + 63) >> 6;
+            ulong[] z = Create64(len);
+            int i = 0;
+            while (x.SignValue != 0)
+            {
+                z[i++] = (ulong)x.LongValue;
+                x = x.ShiftRight(64);
             }
             return z;
         }
@@ -523,10 +607,10 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.Raw
             ulong zc = 0;
             for (int i = 0; i < len; ++i)
             {
-                ulong c = MulWordAddTo(len, x[i], y, 0, zz, i) & M;
-                c += zc + (zz[i + len] & M);
-                zz[i + len] = (uint)c;
-                zc = c >> 32;
+                zc += MulWordAddTo(len, x[i], y, 0, zz, i) & M;
+                zc += zz[i + len] & M;
+                zz[i + len] = (uint)zc;
+                zc >>= 32;
             }
             return (uint)zc;
         }
@@ -536,10 +620,10 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.Raw
             ulong zc = 0;
             for (int i = 0; i < len; ++i)
             {
-                ulong c = MulWordAddTo(len, x[xOff + i], y, yOff, zz, zzOff) & M;
-                c += zc + (zz[zzOff + len] & M);
-                zz[zzOff + len] = (uint)c;
-                zc = c >> 32;
+                zc += MulWordAddTo(len, x[xOff + i], y, yOff, zz, zzOff) & M;
+                zc += zz[zzOff + len] & M;
+                zz[zzOff + len] = (uint)zc;
+                zc >>= 32;
                 ++zzOff;
             }
             return (uint)zc;
@@ -871,11 +955,18 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.Raw
             }
             while (j > 0);
 
+            ulong d = 0UL;
+            int zzPos = 2;
+
             for (int i = 1; i < len; ++i)
             {
-                c = SquareWordAdd(x, i, zz);
-                AddWordAt(extLen, c, zz, i << 1);
+                d += SquareWordAddTo(x, i, zz);
+                d += zz[zzPos];
+                zz[zzPos++] = (uint)d; d >>= 32;
+                d += zz[zzPos];
+                zz[zzPos++] = (uint)d; d >>= 32;
             }
+            Debug.Assert(0UL == d);
 
             ShiftUpBit(extLen, zz, x[0] << 31);
         }
@@ -895,15 +986,23 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.Raw
             }
             while (j > 0);
 
+            ulong d = 0UL;
+            int zzPos = zzOff + 2;
+
             for (int i = 1; i < len; ++i)
             {
-                c = SquareWordAdd(x, xOff, i, zz, zzOff);
-                AddWordAt(extLen, c, zz, zzOff, i << 1);
+                d += SquareWordAddTo(x, xOff, i, zz, zzOff);
+                d += zz[zzPos];
+                zz[zzPos++] = (uint)d; d >>= 32;
+                d += zz[zzPos];
+                zz[zzPos++] = (uint)d; d >>= 32;
             }
+            Debug.Assert(0UL == d);
 
             ShiftUpBit(extLen, zz, zzOff, x[xOff] << 31);
         }
 
+        [Obsolete("Use 'SquareWordAddTo' instead")]
         public static uint SquareWordAdd(uint[] x, int xPos, uint[] z)
         {
             ulong c = 0, xVal = (ulong)x[xPos];
@@ -918,7 +1017,37 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.Raw
             return (uint)c;
         }
 
+        [Obsolete("Use 'SquareWordAddTo' instead")]
         public static uint SquareWordAdd(uint[] x, int xOff, int xPos, uint[] z, int zOff)
+        {
+            ulong c = 0, xVal = (ulong)x[xOff + xPos];
+            int i = 0;
+            do
+            {
+                c += xVal * (x[xOff + i] & M) + (z[xPos + zOff] & M);
+                z[xPos + zOff] = (uint)c;
+                c >>= 32;
+                ++zOff;
+            }
+            while (++i < xPos);
+            return (uint)c;
+        }
+
+        public static uint SquareWordAddTo(uint[] x, int xPos, uint[] z)
+        {
+            ulong c = 0, xVal = (ulong)x[xPos];
+            int i = 0;
+            do
+            {
+                c += xVal * x[i] + z[xPos + i];
+                z[xPos + i] = (uint)c;
+                c >>= 32;
+            }
+            while (++i < xPos);
+            return (uint)c;
+        }
+
+        public static uint SquareWordAddTo(uint[] x, int xOff, int xPos, uint[] z, int zOff)
         {
             ulong c = 0, xVal = (ulong)x[xOff + xPos];
             int i = 0;

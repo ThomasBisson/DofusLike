@@ -2,7 +2,6 @@
 #pragma warning disable
 using System;
 using System.Collections;
-using System.IO;
 using System.Text;
 
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1;
@@ -28,6 +27,9 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.X509
 		private bool		isIndirect;
 		private X509Name	previousCertificateIssuer;
 		private X509Name	certificateIssuer;
+
+        private volatile bool hashValueSet;
+        private volatile int hashValue;
 
 		public X509CrlEntry(
 			CrlEntry c)
@@ -133,6 +135,35 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.X509
 		{
 			get { return c.Extensions != null; }
 		}
+
+        public override bool Equals(object other)
+        {
+            if (this == other)
+                return true;
+
+            X509CrlEntry that = other as X509CrlEntry;
+            if (null == that)
+                return false;
+
+            if (this.hashValueSet && that.hashValueSet)
+            {
+                if (this.hashValue != that.hashValue)
+                    return false;
+            }
+
+            return this.c.Equals(that.c);
+        }
+
+        public override int GetHashCode()
+        {
+            if (!hashValueSet)
+            {
+                hashValue = this.c.GetHashCode();
+                hashValueSet = true;
+            }
+
+            return hashValue;
+        }
 
 		public override string ToString()
 		{

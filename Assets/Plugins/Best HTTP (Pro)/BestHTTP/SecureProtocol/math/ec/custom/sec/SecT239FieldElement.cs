@@ -152,6 +152,18 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.EC.Custom.Sec
             return new SecT239FieldElement(z);
         }
 
+        public override ECFieldElement HalfTrace()
+        {
+            ulong[] z = Nat256.Create64();
+            SecT239Field.HalfTrace(x, z);
+            return new SecT239FieldElement(z);
+        }
+
+        public override bool HasFastTrace
+        {
+            get { return true; }
+        }
+
         public override int Trace()
         {
             return (int)SecT239Field.Trace(x);

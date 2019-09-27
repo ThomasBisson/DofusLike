@@ -1,4 +1,4 @@
-﻿#if (NETFX_CORE || BUILD_FOR_WP8) && !UNITY_EDITOR && !ENABLE_IL2CPP
+﻿#if NETFX_CORE && !UNITY_EDITOR && !ENABLE_IL2CPP
 
 using System;
 using Windows.Networking;
@@ -12,8 +12,6 @@ namespace BestHTTP.PlatformSupport.TcpClient.WinRT
 
         public bool Connected { get; private set; }
         public TimeSpan ConnectTimeout { get; set; }
-
-        public bool UseHTTPSProtocol { get; set; }
 #endregion
 
 #region Private Properties
@@ -42,15 +40,6 @@ namespace BestHTTP.PlatformSupport.TcpClient.WinRT
 
             var host = new HostName(hostName);
 
-            SocketProtectionLevel spl = SocketProtectionLevel.PlainSocket;
-            if (UseHTTPSProtocol)
-                spl = SocketProtectionLevel.
-#if UNITY_WSA_8_0 || BUILD_FOR_WP8
-                        Ssl;
-#else
-                        Tls12;
-#endif
-
             System.Threading.CancellationTokenSource tokenSource = new System.Threading.CancellationTokenSource();
 
             // https://msdn.microsoft.com/en-us/library/windows/apps/xaml/jj710176.aspx#content
@@ -59,7 +48,7 @@ namespace BestHTTP.PlatformSupport.TcpClient.WinRT
                 if (ConnectTimeout > TimeSpan.Zero)
                     tokenSource.CancelAfter(ConnectTimeout);
 
-                var task = Socket.ConnectAsync(host, UseHTTPSProtocol ? "https" : port.ToString(), spl).AsTask(tokenSource.Token);
+                var task = Socket.ConnectAsync(host, port.ToString(), SocketProtectionLevel.PlainSocket).AsTask(tokenSource.Token);
                 task.ConfigureAwait(false);
                 task.Wait();
                 Connected = task.IsCompleted;
@@ -114,14 +103,15 @@ namespace BestHTTP.PlatformSupport.TcpClient.WinRT
         {
             if (!disposed)
             {
+                disposed = true;
                 if (disposing)
                 {
                     if (Stream != null)
                         Stream.Dispose();
                     Stream = null;
                     Connected = false;
+                    this.Socket.Dispose();
                 }
-                disposed = true;
             }
         }
 

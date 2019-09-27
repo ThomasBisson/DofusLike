@@ -13,13 +13,7 @@ public class PlayerMain : PlayerStrategy
     private GetGridMain m_getGridMain;
 
     public delegate Transform GetTransform();
-    private GetTransform m_getTransform;
-
-    public delegate void StartAggroEnnemy(string id, Transform ennemy, float aggroRange);
-    private StartAggroEnnemy m_aggroEnnemy;
-
-    public delegate void StopAggroEnnemy();
-    private StopAggroEnnemy m_stopAggroEnnemy;
+    //private GetTransform m_getTransform;
 
     private float m_aggroRange = 1f;
 
@@ -31,22 +25,25 @@ public class PlayerMain : PlayerStrategy
     {
     }
 
-    public void SetGetterCallbacks(GetGridMain getGridMain, GetTransform getTransform, StartAggroEnnemy aggroEnnemy, StopAggroEnnemy stopAggroEnnemy)
+    public void SetGetterCallbacks(GetGridMain getGridMain)
     {
         m_getGridMain = getGridMain;
-        m_getTransform = getTransform;
-        m_aggroEnnemy = aggroEnnemy;
-        m_stopAggroEnnemy = stopAggroEnnemy;
     }
 
     public override void Start()
     {
-        m_getTransform().position = m_getGridMain().GetNearestPointOnGrid(m_getTransform().position);
+        m_playerManager.transform.position = m_getGridMain().GetNearestPointOnGrid(m_playerManager.transform.position);
     }
 
     #endregion
 
     #region Methods
+
+    public override void Update()
+    {
+        HandleClickOnGround();
+        m_playerManager.m_positionArrayMain = m_getGridMain().GetArrayPosition(m_playerManager.transform.position);
+    }
 
     #region GetterSetter
 
@@ -56,7 +53,7 @@ public class PlayerMain : PlayerStrategy
 
     #region Movement
 
-    public override void HandleClickOnGround()
+    public void HandleClickOnGround()
     {
         if (Input.GetMouseButtonDown(0))
         {
@@ -68,17 +65,17 @@ public class PlayerMain : PlayerStrategy
                 if(hit.transform.tag == "Ennemy")
                 {
                     hasHitEnnemy = true;
-                    m_aggroEnnemy(hit.transform.GetComponent<NetworkIdentity>().GetID(), hit.transform, m_aggroRange);
+                    m_playerManager.TryTofightEnnemmy(hit.transform.GetComponent<NetworkIdentity>().GetID(), hit.transform, m_aggroRange);
                 }
                 if(hit.transform.tag == "GroundGrid")
                 {
                     if (!hasHitEnnemy)
-                        m_stopAggroEnnemy();
+                        m_playerManager.StopTryingToFightEnnemy();
+
                     GoNear(hit.point);
                 }
             }
         }
-        m_playerManager.m_positionArrayMain = m_getGridMain().GetArrayPosition(m_getTransform().position);
     }
 
     public override void GoNear(Vector3 clickPoint)
@@ -90,7 +87,7 @@ public class PlayerMain : PlayerStrategy
     {
         m_playerManager.m_positionArrayMain = new Vector2(UnityEngine.Random.Range(0, m_getGridMain().m_totalSizeX), UnityEngine.Random.Range(0, m_getGridMain().m_totalSizeZ));
         if (mustTeleportPlayer)
-            m_getTransform().position = m_getGridMain().GetNearestPointOnGrid(m_playerManager.m_positionArrayMain);//m_grid.Map[(int)m_positionPlayer.x, (int)m_positionPlayer.y].transform.position;
+            m_playerManager.transform.position = m_getGridMain().GetNearestPointOnGrid(m_playerManager.m_positionArrayMain);//m_grid.Map[(int)m_positionPlayer.x, (int)m_positionPlayer.y].transform.position;
     }
 
     #endregion

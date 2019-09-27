@@ -1,10 +1,10 @@
 #if !BESTHTTP_DISABLE_ALTERNATE_SSL && (!UNITY_WEBGL || UNITY_EDITOR)
 #pragma warning disable
+using System;
+using System.Collections;
 #if UNITY_WSA && !UNITY_EDITOR && !ENABLE_IL2CPP
 using System.TypeFix;
 #endif
-using System;
-using System.Collections;
 using System.Text;
 
 namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Collections
@@ -54,23 +54,18 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Collections
 
         public static string ToString(IEnumerable c)
         {
-            StringBuilder sb = new StringBuilder("[");
-
             IEnumerator e = c.GetEnumerator();
+            if (!e.MoveNext())
+                return "[]";
 
-            if (e.MoveNext())
+            StringBuilder sb = new StringBuilder("[");
+            sb.Append(e.Current.ToString());
+            while (e.MoveNext())
             {
+                sb.Append(", ");
                 sb.Append(e.Current.ToString());
-
-                while (e.MoveNext())
-                {
-                    sb.Append(", ");
-                    sb.Append(e.Current.ToString());
-                }
             }
-
             sb.Append(']');
-
             return sb.ToString();
         }
     }

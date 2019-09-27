@@ -243,14 +243,9 @@ namespace BestHTTP.SignalR
         #region Internals
 
         /// <summary>
-        /// An object to be able maintain thread safety.
-        /// </summary>
-        internal object SyncRoot = new object();
-
-        /// <summary>
         /// Unique ID for all message sent by the client.
         /// </summary>
-        internal UInt64 ClientMessageCounter { get; set; }
+        internal long ClientMessageCounter;
 
         #endregion
 
@@ -269,7 +264,7 @@ namespace BestHTTP.SignalR
         /// <summary>
         /// Request counter sent with all request for easier debugging.
         /// </summary>
-        private UInt64 RequestCounter;
+        private long RequestCounter;
 
         /// <summary>
         /// Instance of the last received message. Used for its MessageId.
@@ -663,18 +658,15 @@ namespace BestHTTP.SignalR
             if (arg == null)
                 throw new ArgumentNullException("arg");
 
-            lock(SyncRoot)
-            {
-                if (this.State != ConnectionStates.Connected)
-                    return false;
+            if (this.State != ConnectionStates.Connected)
+                return false;
 
-                string json = JsonEncoder.Encode(arg);
+            string json = JsonEncoder.Encode(arg);
 
-                if (string.IsNullOrEmpty(json))
-                    HTTPManager.Logger.Error("SignalR Connection", "Failed to JSon encode the given argument. Please try to use an advanced JSon encoder(check the documentation how you can do it).");
-                else
-                    Transport.Send(json);
-            }
+            if (string.IsNullOrEmpty(json))
+                HTTPManager.Logger.Error("SignalR Connection", "Failed to JSon encode the given argument. Please try to use an advanced JSon encoder(check the documentation how you can do it).");
+            else
+                Transport.Send(json);
 
             return true;
         }
@@ -688,13 +680,10 @@ namespace BestHTTP.SignalR
             if (json == null)
                 throw new ArgumentNullException("json");
 
-            lock(SyncRoot)
-            {
-                if (this.State != ConnectionStates.Connected)
-                    return false;
+            if (this.State != ConnectionStates.Connected)
+                return false;
 
-                Transport.Send(json);
-            }
+            Transport.Send(json);
 
             return true;
         }
@@ -908,146 +897,148 @@ namespace BestHTTP.SignalR
         /// </summary>
         Uri IConnection.BuildUri(RequestTypes type, TransportBase transport)
         {
-            lock (SyncRoot)
+            // make sure that the queryBuilder is reseted
+            queryBuilder.Length = 0;
+
+            UriBuilder uriBuilder = new UriBuilder(Uri);
+
+            if (!uriBuilder.Path.EndsWith("/"))
+                uriBuilder.Path += "/";
+
+            long newValue, originalValue;
+            do
             {
-                // make sure that the queryBuilder is reseted
-                queryBuilder.Length = 0;
+                originalValue = this.RequestCounter;
+                newValue = originalValue % long.MaxValue;
+            } while (System.Threading.Interlocked.CompareExchange(ref this.RequestCounter, newValue, originalValue) != originalValue);
 
-                UriBuilder uriBuilder = new UriBuilder(Uri);
+            switch (type)
+            {
+                case RequestTypes.Negotiate:
+                    uriBuilder.Path += "negotiate";
+                    goto default;
 
-                if (!uriBuilder.Path.EndsWith("/"))
-                    uriBuilder.Path += "/";
-
-                this.RequestCounter %= UInt64.MaxValue;
-
-                switch (type)
-                {
-                    case RequestTypes.Negotiate:
-                        uriBuilder.Path += "negotiate";
-                        goto default;
-
-                    case RequestTypes.Connect:
+                case RequestTypes.Connect:
 #if !BESTHTTP_DISABLE_WEBSOCKET
-                        if (transport != null && transport.Type == TransportTypes.WebSocket)
-                            uriBuilder.Scheme = HTTPProtocolFactory.IsSecureProtocol(Uri) ? "wss" : "ws";
+                    if (transport != null && transport.Type == TransportTypes.WebSocket)
+                        uriBuilder.Scheme = HTTPProtocolFactory.IsSecureProtocol(Uri) ? "wss" : "ws";
 #endif
 
-                        uriBuilder.Path += "connect";
-                        goto default;
+                    uriBuilder.Path += "connect";
+                    goto default;
 
-                    case RequestTypes.Start:
-                        uriBuilder.Path += "start";
-                        goto default;
+                case RequestTypes.Start:
+                    uriBuilder.Path += "start";
+                    goto default;
 
-                    case RequestTypes.Poll:
-                        uriBuilder.Path += "poll";
+                case RequestTypes.Poll:
+                    uriBuilder.Path += "poll";
 
-                        if (this.LastReceivedMessage != null)
-                        {
-                            queryBuilder.Append("messageId=");
-                            queryBuilder.Append(this.LastReceivedMessage.MessageId);
-                        }
+                    if (this.LastReceivedMessage != null)
+                    {
+                        queryBuilder.Append("messageId=");
+                        queryBuilder.Append(this.LastReceivedMessage.MessageId);
+                    }
 
-                        if (!string.IsNullOrEmpty(GroupsToken))
-                        {
-                            if (queryBuilder.Length > 0)
-                                queryBuilder.Append("&");
-
-                            queryBuilder.Append("groupsToken=");
-                            queryBuilder.Append(GroupsToken);
-                        }
-
-                        goto default;
-
-                    case RequestTypes.Send:
-                        uriBuilder.Path += "send";
-                        goto default;
-
-                    case RequestTypes.Reconnect:
-#if !BESTHTTP_DISABLE_WEBSOCKET
-                        if (transport != null && transport.Type == TransportTypes.WebSocket)
-                            uriBuilder.Scheme = HTTPProtocolFactory.IsSecureProtocol(Uri) ? "wss" : "ws";
-#endif
-
-                        uriBuilder.Path += "reconnect";
-
-                        if (this.LastReceivedMessage != null)
-                        {
-                            queryBuilder.Append("messageId=");
-                            queryBuilder.Append(this.LastReceivedMessage.MessageId);
-                        }
-
-                        if (!string.IsNullOrEmpty(GroupsToken))
-                        {
-                            if (queryBuilder.Length > 0)
-                                queryBuilder.Append("&");
-
-                            queryBuilder.Append("groupsToken=");
-                            queryBuilder.Append(GroupsToken);
-                        }
-
-                        goto default;
-
-                    case RequestTypes.Abort:
-                        uriBuilder.Path += "abort";
-                        goto default;
-
-                    case RequestTypes.Ping:
-                        uriBuilder.Path += "ping";
-
-                        queryBuilder.Append("&tid=");
-                        queryBuilder.Append(this.RequestCounter++.ToString());
-
-                        queryBuilder.Append("&_=");
-                        queryBuilder.Append(Timestamp.ToString());
-
-                        break;
-
-                    default:
+                    if (!string.IsNullOrEmpty(GroupsToken))
+                    {
                         if (queryBuilder.Length > 0)
                             queryBuilder.Append("&");
 
-                        queryBuilder.Append("tid=");
-                        queryBuilder.Append(this.RequestCounter++.ToString());
+                        queryBuilder.Append("groupsToken=");
+                        queryBuilder.Append(GroupsToken);
+                    }
 
-                        queryBuilder.Append("&_=");
-                        queryBuilder.Append(Timestamp.ToString());
+                    goto default;
 
-                        if (transport != null)
-                        {
-                            queryBuilder.Append("&transport=");
-                            queryBuilder.Append(transport.Name);
-                        }
+                case RequestTypes.Send:
+                    uriBuilder.Path += "send";
+                    goto default;
 
-                        queryBuilder.Append("&clientProtocol=");
-                        queryBuilder.Append(ClientProtocols[(byte)Protocol]);
+                case RequestTypes.Reconnect:
+#if !BESTHTTP_DISABLE_WEBSOCKET
+                    if (transport != null && transport.Type == TransportTypes.WebSocket)
+                        uriBuilder.Scheme = HTTPProtocolFactory.IsSecureProtocol(Uri) ? "wss" : "ws";
+#endif
 
-                        if (NegotiationResult != null && !string.IsNullOrEmpty(this.NegotiationResult.ConnectionToken))
-                        {
-                            queryBuilder.Append("&connectionToken=");
-                            queryBuilder.Append(this.NegotiationResult.ConnectionToken);
-                        }
+                    uriBuilder.Path += "reconnect";
 
-                        if (this.Hubs != null && this.Hubs.Length > 0)
-                        {
-                            queryBuilder.Append("&connectionData=");
-                            queryBuilder.Append(this.ConnectionData);
-                        }
+                    if (this.LastReceivedMessage != null)
+                    {
+                        queryBuilder.Append("messageId=");
+                        queryBuilder.Append(this.LastReceivedMessage.MessageId);
+                    }
 
-                        break;
-                }
+                    if (!string.IsNullOrEmpty(GroupsToken))
+                    {
+                        if (queryBuilder.Length > 0)
+                            queryBuilder.Append("&");
 
-                // Query params are added to all uri
-                if (this.AdditionalQueryParams != null && this.AdditionalQueryParams.Count > 0)
-                    queryBuilder.Append(this.QueryParams);
+                        queryBuilder.Append("groupsToken=");
+                        queryBuilder.Append(GroupsToken);
+                    }
 
-                uriBuilder.Query = queryBuilder.ToString();
+                    goto default;
 
-                // reset the string builder
-                queryBuilder.Length = 0;
+                case RequestTypes.Abort:
+                    uriBuilder.Path += "abort";
+                    goto default;
 
-                return uriBuilder.Uri;
+                case RequestTypes.Ping:
+                    uriBuilder.Path += "ping";
+
+                    queryBuilder.Append("&tid=");
+                    queryBuilder.Append(System.Threading.Interlocked.Increment(ref this.RequestCounter).ToString());
+
+                    queryBuilder.Append("&_=");
+                    queryBuilder.Append(Timestamp.ToString());
+
+                    break;
+
+                default:
+                    if (queryBuilder.Length > 0)
+                        queryBuilder.Append("&");
+
+                    queryBuilder.Append("tid=");
+                    queryBuilder.Append(System.Threading.Interlocked.Increment(ref this.RequestCounter).ToString());
+
+                    queryBuilder.Append("&_=");
+                    queryBuilder.Append(Timestamp.ToString());
+
+                    if (transport != null)
+                    {
+                        queryBuilder.Append("&transport=");
+                        queryBuilder.Append(transport.Name);
+                    }
+
+                    queryBuilder.Append("&clientProtocol=");
+                    queryBuilder.Append(ClientProtocols[(byte)Protocol]);
+
+                    if (NegotiationResult != null && !string.IsNullOrEmpty(this.NegotiationResult.ConnectionToken))
+                    {
+                        queryBuilder.Append("&connectionToken=");
+                        queryBuilder.Append(this.NegotiationResult.ConnectionToken);
+                    }
+
+                    if (this.Hubs != null && this.Hubs.Length > 0)
+                    {
+                        queryBuilder.Append("&connectionData=");
+                        queryBuilder.Append(this.ConnectionData);
+                    }
+
+                    break;
             }
+
+            // Query params are added to all uri
+            if (this.AdditionalQueryParams != null && this.AdditionalQueryParams.Count > 0)
+                queryBuilder.Append(this.QueryParams);
+
+            uriBuilder.Query = queryBuilder.ToString();
+
+            // reset the string builder
+            queryBuilder.Length = 0;
+
+            return uriBuilder.Uri;
         }
 
         /// <summary>

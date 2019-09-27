@@ -72,21 +72,12 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Cmp
 		public override Asn1Object ToAsn1Object()
 		{
 			Asn1EncodableVector v = new Asn1EncodableVector();
-			AddOptional(v, 0, hashAlg);
-			AddOptional(v, 1, certId);
+            v.AddOptionalTagged(true, 0, hashAlg);
+            v.AddOptionalTagged(true, 1, certId);
 			v.Add(hashVal);
 			return new DerSequence(v);
 		}
-
-		private void AddOptional(Asn1EncodableVector v, int tagNo, Asn1Encodable obj)
-		{
-			if (obj != null)
-			{
-				v.Add(new DerTaggedObject(true, tagNo, obj));
-			}
-		}
 	}
 }
-
 #pragma warning restore
 #endif

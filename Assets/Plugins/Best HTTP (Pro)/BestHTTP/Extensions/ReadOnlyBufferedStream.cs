@@ -3,9 +3,8 @@ using System.IO;
 
 namespace BestHTTP.Extensions
 {
-    public class ReadOnlyBufferedStream : Stream
+    public sealed class ReadOnlyBufferedStream : Stream
     {
-        public bool CheckForDataAvailability { get; set; }
         Stream stream;
         public const int READBUFFER = 8192;
         byte[] buf;
@@ -13,9 +12,14 @@ namespace BestHTTP.Extensions
         int pos = 0;
 
         public ReadOnlyBufferedStream(Stream nstream)
+            :this(nstream, READBUFFER)
+        {
+        }
+
+        public ReadOnlyBufferedStream(Stream nstream, int bufferSize)
         {
             stream = nstream;
-            buf = VariableSizedBufferPool.Get(READBUFFER, true);
+            buf = VariableSizedBufferPool.Get(bufferSize, true);
         }
 
         public override int Read(byte[] buffer, int offset, int size)

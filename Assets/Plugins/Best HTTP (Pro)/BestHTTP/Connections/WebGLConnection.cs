@@ -42,7 +42,7 @@ namespace BestHTTP
             XHR_Abort(this.NativeId);
         }
 
-        protected override void ThreadFunc(object param /*null*/)
+        protected override void ThreadFunc()
         {
             // XmlHttpRequest setup
 
@@ -99,8 +99,10 @@ namespace BestHTTP
 
                     CurrentRequest.Response.Receive(buffer != null && bufferLength > 0 ? (int)bufferLength : -1, true);
 
+#if !BESTHTTP_DISABLE_COOKIES
                     if (CurrentRequest.IsCookiesEnabled)
                         BestHTTP.Cookies.CookieJar.Set(CurrentRequest.Response);
+#endif
                 }
             }
             catch (Exception e)

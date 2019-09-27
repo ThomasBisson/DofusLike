@@ -5,7 +5,7 @@ using BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities;
 
 namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Digests
 {
-    public class GOST3411_2012_512Digest:GOST3411_2012Digest
+    public class Gost3411_2012_512Digest:Gost3411_2012Digest
     {
 		private readonly static byte[] IV = {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -23,11 +23,11 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Digests
 			get { return "GOST3411-2012-512"; }
 		}
 
-        public GOST3411_2012_512Digest():base(IV)
+        public Gost3411_2012_512Digest():base(IV)
         {
         }
 
-		public GOST3411_2012_512Digest(GOST3411_2012_512Digest other) : base(IV)
+		public Gost3411_2012_512Digest(Gost3411_2012_512Digest other) : base(IV)
 		{
             Reset(other);
         }
@@ -39,7 +39,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Digests
 
 		public override IMemoable Copy()
 		{
-			return new GOST3411_2012_512Digest(this);
+			return new Gost3411_2012_512Digest(this);
 		}
     }
 }

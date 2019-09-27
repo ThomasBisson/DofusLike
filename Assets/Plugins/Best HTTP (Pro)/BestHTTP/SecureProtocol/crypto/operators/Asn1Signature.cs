@@ -14,6 +14,7 @@ using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.X509;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.X9;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.IO;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Parameters;
+using BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Signers;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Security;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Collections;
@@ -238,6 +239,8 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Operators
 		}
 	}
 
+
+
     /// <summary>
     /// Calculator factory class for signature generation in ASN.1 based profiles that use an AlgorithmIdentifier to preserve
     /// signature algorithm details.
@@ -346,7 +349,8 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Operators
 		}
 
         public IStreamCalculator CreateCalculator()
-        {
+        {       
+           
             ISigner verifier = SignerUtilities.InitSigner(X509Utilities.GetSignatureName(algID), false, publicKey, null);
 
             return new DefaultVerifierCalculator(verifier);

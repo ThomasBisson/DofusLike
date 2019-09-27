@@ -8,12 +8,14 @@ using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.CryptoPro;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.EdEC;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Oiw;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Pkcs;
+using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Rosstandart;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.X509;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.X9;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Math;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Math.EC;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities;
+using BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Encoders;
 
 namespace BestHTTP.SecureProtocol.Org.BouncyCastle.X509
 {
@@ -93,8 +95,53 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.X509
             } // End of RSA.
 
             if (publicKey is ECPublicKeyParameters)
-            {
+            {            
+               
                 ECPublicKeyParameters _key = (ECPublicKeyParameters) publicKey;
+
+
+                if (_key.Parameters is ECGost3410Parameters)
+                {
+                    ECGost3410Parameters gostParams = (ECGost3410Parameters)_key.Parameters;
+
+                    BigInteger bX = _key.Q.AffineXCoord.ToBigInteger();
+                    BigInteger bY = _key.Q.AffineYCoord.ToBigInteger();
+                    bool is512 = (bX.BitLength > 256);
+
+                    Gost3410PublicKeyAlgParameters parameters = new Gost3410PublicKeyAlgParameters(
+                        gostParams.PublicKeyParamSet,
+                        gostParams.DigestParamSet,
+                        gostParams.EncryptionParamSet);
+
+                    int encKeySize;
+                    int offset;
+                    DerObjectIdentifier algIdentifier;
+                    if (is512)
+                    {
+                        encKeySize = 128;
+                        offset = 64;
+                        algIdentifier = RosstandartObjectIdentifiers.id_tc26_gost_3410_12_512;
+                    }
+                    else
+                    {
+                        encKeySize = 64;
+                        offset = 32;
+                        algIdentifier = RosstandartObjectIdentifiers.id_tc26_gost_3410_12_256;
+                    }
+
+                    byte[] encKey = new byte[encKeySize];
+               
+                    ExtractBytes(encKey, encKeySize / 2, 0, bX);
+                    ExtractBytes(encKey, encKeySize / 2, offset, bY);
+                  
+                    return new SubjectPublicKeyInfo(new AlgorithmIdentifier(algIdentifier, parameters), new DerOctetString(encKey));
+                   
+
+                } // End of ECGOST3410_2012
+
+
+
+
 
                 if (_key.AlgorithmName == "ECGOST3410")
                 {
@@ -209,6 +256,23 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.X509
             for (int i = 0; i < n; ++i)
             {
                 encKey[offset + i] = val[val.Length - 1 - i];
+            }
+        }
+
+
+        private static void ExtractBytes(byte[] encKey, int size, int offSet, BigInteger bI)
+        {
+            byte[] val = bI.ToByteArray();
+            if (val.Length < size)
+            {
+                byte[] tmp = new byte[size];
+                Array.Copy(val, 0, tmp, tmp.Length - val.Length, val.Length);
+                val = tmp;
+            }
+
+            for (int i = 0; i != size; i++)
+            {
+                encKey[offSet + i] = val[val.Length - 1 - i];
             }
         }
     }

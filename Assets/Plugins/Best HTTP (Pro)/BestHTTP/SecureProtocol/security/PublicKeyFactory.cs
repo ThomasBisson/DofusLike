@@ -10,6 +10,7 @@ using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.CryptoPro;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.EdEC;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Oiw;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Pkcs;
+using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Rosstandart;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Sec;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.X509;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.X9;
@@ -18,6 +19,8 @@ using BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Generators;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Parameters;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Math;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Math.EC;
+using BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities;
+using BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Encoders;
 
 namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Security
 {
@@ -56,7 +59,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Security
                 || algOid.Equals(PkcsObjectIdentifiers.IdRsaesOaep))
             {
                 RsaPublicKeyStructure pubKey = RsaPublicKeyStructure.GetInstance(
-                    keyInfo.GetPublicKey());
+                    keyInfo.ParsePublicKey());
 
                 return new RsaKeyParameters(false, pubKey.Modulus, pubKey.PublicExponent);
             }
@@ -64,7 +67,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Security
             {
                 Asn1Sequence seq = Asn1Sequence.GetInstance(algID.Parameters.ToAsn1Object());
 
-                DHPublicKey dhPublicKey = DHPublicKey.GetInstance(keyInfo.GetPublicKey());
+                DHPublicKey dhPublicKey = DHPublicKey.GetInstance(keyInfo.ParsePublicKey());
 
                 BigInteger y = dhPublicKey.Y.Value;
 
@@ -101,7 +104,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Security
             {
                 Asn1Sequence seq = Asn1Sequence.GetInstance(algID.Parameters.ToAsn1Object());
 
-                DerInteger derY = (DerInteger) keyInfo.GetPublicKey();
+                DerInteger derY = (DerInteger)keyInfo.ParsePublicKey();
 
                 return ReadPkcsDHParam(algOid, derY.Value, seq);
             }
@@ -109,7 +112,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Security
             {
                 ElGamalParameter para = new ElGamalParameter(
                     Asn1Sequence.GetInstance(algID.Parameters.ToAsn1Object()));
-                DerInteger derY = (DerInteger) keyInfo.GetPublicKey();
+                DerInteger derY = (DerInteger)keyInfo.ParsePublicKey();
 
                 return new ElGamalPublicKeyParameters(
                     derY.Value,
@@ -118,7 +121,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Security
             else if (algOid.Equals(X9ObjectIdentifiers.IdDsa)
                 || algOid.Equals(OiwObjectIdentifiers.DsaWithSha1))
             {
-                DerInteger derY = (DerInteger) keyInfo.GetPublicKey();
+                DerInteger derY = (DerInteger)keyInfo.ParsePublicKey();
                 Asn1Encodable ae = algID.Parameters;
 
                 DsaParameters parameters = null;
@@ -158,64 +161,57 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Security
             }
             else if (algOid.Equals(CryptoProObjectIdentifiers.GostR3410x2001))
             {
-                Gost3410PublicKeyAlgParameters gostParams = new Gost3410PublicKeyAlgParameters(
-                    (Asn1Sequence) algID.Parameters);
+                Gost3410PublicKeyAlgParameters gostParams = Gost3410PublicKeyAlgParameters.GetInstance(algID.Parameters);
+                DerObjectIdentifier publicKeyParamSet = gostParams.PublicKeyParamSet;
+
+                ECDomainParameters ecP = ECGost3410NamedCurves.GetByOid(publicKeyParamSet);
+                if (ecP == null)
+                    return null;
 
                 Asn1OctetString key;
                 try
                 {
-                    key = (Asn1OctetString) keyInfo.GetPublicKey();
+                    key = (Asn1OctetString)keyInfo.ParsePublicKey();
                 }
-                catch (IOException)
+                catch (IOException e)
                 {
-                    throw new ArgumentException("invalid info structure in GOST3410 public key");
+                    throw new ArgumentException("error recovering GOST3410_2001 public key", e);
                 }
+
+                int fieldSize = 32;
+                int keySize = 2 * fieldSize;
 
                 byte[] keyEnc = key.GetOctets();
-                byte[] x = new byte[32];
-                byte[] y = new byte[32];
+                if (keyEnc.Length != keySize)
+                    throw new ArgumentException("invalid length for GOST3410_2001 public key");
 
-                for (int i = 0; i != y.Length; i++)
+                byte[] x9Encoding = new byte[1 + keySize];
+                x9Encoding[0] = 0x04;
+                for (int i = 1; i <= fieldSize; ++i)
                 {
-                    x[i] = keyEnc[32 - 1 - i];
+                    x9Encoding[i] = keyEnc[fieldSize - i];
+                    x9Encoding[i + fieldSize] = keyEnc[keySize - i];
                 }
 
-                for (int i = 0; i != x.Length; i++)
-                {
-                    y[i] = keyEnc[64 - 1 - i];
-                }
+                ECPoint q = ecP.Curve.DecodePoint(x9Encoding);
 
-                ECDomainParameters ecP = ECGost3410NamedCurves.GetByOid(gostParams.PublicKeyParamSet);
-
-                if (ecP == null)
-                    return null;
-
-                ECPoint q = ecP.Curve.CreatePoint(new BigInteger(1, x), new BigInteger(1, y));
-
-                return new ECPublicKeyParameters("ECGOST3410", q, gostParams.PublicKeyParamSet);
+                return new ECPublicKeyParameters("ECGOST3410", q, publicKeyParamSet);
             }
             else if (algOid.Equals(CryptoProObjectIdentifiers.GostR3410x94))
             {
-                Gost3410PublicKeyAlgParameters algParams = new Gost3410PublicKeyAlgParameters(
-                    (Asn1Sequence) algID.Parameters);
+                Gost3410PublicKeyAlgParameters algParams = Gost3410PublicKeyAlgParameters.GetInstance(algID.Parameters);
 
-                DerOctetString derY;
+                Asn1OctetString key;
                 try
                 {
-                    derY = (DerOctetString) keyInfo.GetPublicKey();
+                    key = (Asn1OctetString)keyInfo.ParsePublicKey();
                 }
-                catch (IOException)
+                catch (IOException e)
                 {
-                    throw new ArgumentException("invalid info structure in GOST3410 public key");
+                    throw new ArgumentException("error recovering GOST3410_94 public key", e);
                 }
 
-                byte[] keyEnc = derY.GetOctets();
-                byte[] keyBytes = new byte[keyEnc.Length];
-
-                for (int i = 0; i != keyEnc.Length; i++)
-                {
-                    keyBytes[i] = keyEnc[keyEnc.Length - 1 - i]; // was little endian
-                }
+                byte[] keyBytes = Arrays.Reverse(key.GetOctets()); // was little endian
 
                 BigInteger y = new BigInteger(1, keyBytes);
 
@@ -236,6 +232,51 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Security
             else if (algOid.Equals(EdECObjectIdentifiers.id_Ed448))
             {
                 return new Ed448PublicKeyParameters(GetRawKey(keyInfo, Ed448PublicKeyParameters.KeySize), 0);
+            }
+            else if (algOid.Equals(RosstandartObjectIdentifiers.id_tc26_gost_3410_12_256)
+                ||   algOid.Equals(RosstandartObjectIdentifiers.id_tc26_gost_3410_12_512))
+            {
+                Gost3410PublicKeyAlgParameters gostParams = Gost3410PublicKeyAlgParameters.GetInstance(algID.Parameters);
+                DerObjectIdentifier publicKeyParamSet = gostParams.PublicKeyParamSet;
+
+                ECGost3410Parameters ecDomainParameters =new ECGost3410Parameters(
+                    new ECNamedDomainParameters(publicKeyParamSet, ECGost3410NamedCurves.GetByOid(publicKeyParamSet)),
+                    publicKeyParamSet,
+                    gostParams.DigestParamSet,
+                    gostParams.EncryptionParamSet);
+
+                Asn1OctetString key;
+                try
+                {
+                    key = (Asn1OctetString)keyInfo.ParsePublicKey();
+                }
+                catch (IOException e)
+                {
+                    throw new ArgumentException("error recovering GOST3410_2012 public key", e);
+                }
+
+                int fieldSize = 32;
+                if (algOid.Equals(RosstandartObjectIdentifiers.id_tc26_gost_3410_12_512))
+                {
+                    fieldSize = 64;
+                }
+                int keySize = 2 * fieldSize;
+
+                byte[] keyEnc = key.GetOctets();
+                if (keyEnc.Length != keySize)
+                    throw new ArgumentException("invalid length for GOST3410_2012 public key");
+
+                byte[] x9Encoding = new byte[1 + keySize];
+                x9Encoding[0] = 0x04;
+                for (int i = 1; i <= fieldSize; ++i)
+                {
+                    x9Encoding[i] = keyEnc[fieldSize - i];
+                    x9Encoding[i + fieldSize] = keyEnc[keySize - i];
+                }
+
+                ECPoint q = ecDomainParameters.Curve.DecodePoint(x9Encoding);
+
+                return new ECPublicKeyParameters(q, ecDomainParameters);
             }
             else
             {

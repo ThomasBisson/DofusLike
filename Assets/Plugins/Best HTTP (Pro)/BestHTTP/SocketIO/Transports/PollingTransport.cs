@@ -7,6 +7,9 @@ namespace BestHTTP.SocketIO.Transports
 {
     internal sealed class PollingTransport : ITransport
     {
+        static byte[] SquareBrackets = new byte[] { (byte)'[', (byte)']' };
+        static byte[] CurlyBrackets = new byte[] { (byte)'{', (byte)'}' };
+
         #region Public (ITransport) Properties
 
         public TransportTypes Type { get { return TransportTypes.Polling; } }
@@ -364,6 +367,15 @@ namespace BestHTTP.SocketIO.Transports
 //00000050  22 70 69 6e 67 54 69 6d 65 6f 75 74 22 3a 36 30   "pingTimeout":60
 //00000060  30 30 30 7d 32 3a 34 30                           000}2:40        
 
+//00000000  38 30 3a 34 32 5b 22 50 6f 6c 6c 69 6e 67 20 69   80:42["Polling i
+//00000010  73 20 77 6f 72 6b 69 6e 67 20 6e 6f 72 6d 61 6c   s working normal
+//00000020  6c 79 20 62 75 74 20 63 72 61 73 68 65 73 20 6f   ly but crashes o
+//00000030  6e 20 72 65 63 65 69 76 69 6e 67 20 6d 75 74 61   n receiving muta
+//00000040  74 65 64 20 76 6f 77 65 6c 73 20 c3 bc 20 c3 b6   ted vowels      
+//00000050  20 c3 a4 2e 22 5d                                    ."]     
+
+
+
                     int idx = 0;
 
                     while (idx < resp.Data.Length)
@@ -392,7 +404,33 @@ namespace BestHTTP.SocketIO.Transports
                         switch(type)
                         {
                             case PayloadTypes.Text:
-                                packet = new Packet(Encoding.UTF8.GetString(resp.Data, idx, length));
+                                // While we already received a length for the packet, it contains the character count of the packet not the byte count.
+                                // So, when the packet contains UTF8 characters, length will contain less than the actual byte count.
+                                // To fix this, we have to find the last square or curly bracket and if the sent and calculated lengths are different
+                                //  we will use the larger one.
+                                int customLength = 1;
+                                byte next = resp.Data[idx];
+                                while (next != SquareBrackets[0] && next != CurlyBrackets[0] && idx + customLength < resp.Data.Length)
+                                    next = resp.Data[idx + customLength++];
+
+                                if (idx + customLength < resp.Data.Length)
+                                {
+                                    byte[] brackets = SquareBrackets;
+                                    if (next == CurlyBrackets[0])
+                                        brackets = CurlyBrackets;
+
+                                    int bracketCount = 1;
+                                    while (bracketCount != 0 && idx + customLength < resp.Data.Length)
+                                    {
+                                        next = resp.Data[idx + customLength++];
+                                        if (next == brackets[0])
+                                            bracketCount++;
+                                        else if (next == brackets[1])
+                                            bracketCount--;
+                                    }
+                                }
+
+                                packet = new Packet(Encoding.UTF8.GetString(resp.Data, idx, Math.Max(length, customLength)));
                                 break;
                             case PayloadTypes.Binary:
                                 if (PacketWithAttachment != null)

@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !BESTHTTP_DISABLE_SIGNALR_CORE && !BESTHTTP_DISABLE_WEBSOCKET
+using System;
 using System.Collections.Generic;
 
 namespace BestHTTP.SignalRCore.Messages
@@ -140,3 +141,4 @@ namespace BestHTTP.SignalRCore.Messages
         }
     }
 }
+#endif

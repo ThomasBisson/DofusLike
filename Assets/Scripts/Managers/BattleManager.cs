@@ -23,10 +23,10 @@ public class BattleManager : MonoBehaviour
     public void SwitchToFightScene(NetworkIdentity groupNI)
     {
         SceneManager.LoadScene("Fight", LoadSceneMode.Additive);
-        StartCoroutine(WaitSceneIsLoaded(groupNI));
+        StartCoroutine(WaitSceneIsLoadedFight(groupNI));
     }
 
-    IEnumerator WaitSceneIsLoaded(NetworkIdentity groupNI)
+    IEnumerator WaitSceneIsLoadedFight(NetworkIdentity groupNI)
     {
         //Get EnnemyGroupMain
         var groupMain = groupNI.GetComponent<EnnemyGroup>();
@@ -39,12 +39,13 @@ public class BattleManager : MonoBehaviour
         SceneManager.SetActiveScene(scene);
 
         //Set Player to fight mode
-        GameManager.PlayerManager.ChangeStrategy(PlayerManager.PossibleStrategy.Fight);
+        GameManager.PlayerManager.ChangeStrategy(PlayerManager.PlayerStartegy.Fight);
         GameManager.PlayerManager.SubscribeToNewTurnEvents(m_HUDManager.SwitchableMana.SwitchableF.MakeLeftTopIconAppear);
+        GameManager.PlayerManager.GetPlayerFight().SubscribeToSpellCooldownEvents(m_HUDManager.SwitchableMana.SwitchableF.SpellAndControlsUI.HandleSpellCooldown);
 
 
-        //Set ennemies
-        var parent = new GameObject().transform;
+       //Set ennemies
+       var parent = new GameObject().transform;
         parent.name = groupNI.transform.name;
         EnnemyGroup groupFight = parent.gameObject.AddComponent<EnnemyGroup>();
         groupFight.Position = new Vector2(0,0);
@@ -87,14 +88,14 @@ public class BattleManager : MonoBehaviour
     {
         //Start a loading screen and wait until the fight scene is loaded
         m_HUDManager.StartLoadScreen();
-        Scene scene = SceneManager.GetSceneByName("Main");
-        yield return new WaitUntil(() => scene.isLoaded);
+        Scene sceneMain = SceneManager.GetSceneByName("Main");
+        yield return new WaitUntil(() => sceneMain.isLoaded);
 
-        SceneManager.SetActiveScene(scene);
+        SceneManager.SetActiveScene(sceneMain);
 
-        //Set Player to main mode
-        GameManager.PlayerManager.ChangeStrategy(PlayerManager.PossibleStrategy.Main);
+        //Unsubscribe to events
         GameManager.PlayerManager.UnsubscribeToNewTurnEvents(m_HUDManager.SwitchableMana.SwitchableF.MakeLeftTopIconAppear);
+        GameManager.PlayerManager.GetPlayerFight().UnsubscribeToSpellCooldownEvents(m_HUDManager.SwitchableMana.SwitchableF.SpellAndControlsUI.HandleSpellCooldown);
 
         //Activate HUD for battle
         m_HUDManager.SwitchableMana.SwitchToMain();
@@ -102,6 +103,12 @@ public class BattleManager : MonoBehaviour
 
         //Stop load screen and unload main scene
         m_HUDManager.StopLoadScreen();
-        SceneManager.UnloadSceneAsync("Fight");
+        Scene sceneFight = SceneManager.GetSceneByName("Fight");
+        SceneManager.UnloadSceneAsync(sceneFight);
+
+        yield return new WaitUntil(() => !sceneFight.isLoaded);
+
+        //Set Player to main mode
+        GameManager.PlayerManager.ChangeStrategy(PlayerManager.PlayerStartegy.Main);
     }
 }

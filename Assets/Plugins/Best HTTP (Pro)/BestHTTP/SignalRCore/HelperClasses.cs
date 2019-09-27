@@ -1,4 +1,6 @@
 ﻿#if !BESTHTTP_DISABLE_SIGNALR_CORE && !BESTHTTP_DISABLE_WEBSOCKET
+using BestHTTP.Futures;
+using BestHTTP.SignalRCore.Messages;
 using System;
 using System.Collections.Generic;
 
@@ -68,15 +70,12 @@ namespace BestHTTP.SignalRCore
         object ConvertTo(Type toType, object obj);
     }
 
-    public class StreamItemContainer<T>
+    public sealed class StreamItemContainer<T>
     {
         public readonly long id;
 
         public List<T> Items { get; private set; }
         public T LastAdded { get; private set; }
-
-        //public int newIdx;
-        //public int newCount;
 
         public bool IsCanceled;
 
@@ -91,22 +90,9 @@ namespace BestHTTP.SignalRCore
             if (this.Items == null)
                 this.Items = new List<T>();
 
-            //this.newIdx = this.Items.Count;
-            //this.newCount = 1;
             this.Items.Add(item);
             this.LastAdded = item;
         }
-
-        //public void AddItems(T[] items)
-        //{
-        //    if (this.Items == null)
-        //        this.Items = new List<T>();
-        //
-        //    this.newIdx = this.Items.Count;
-        //    this.newCount = items.Length;
-        //
-        //    this.Items.AddRange(items);
-        //}
     }
 
     struct CallbackDescriptor

@@ -101,17 +101,21 @@ namespace BestHTTP.Examples
             Samples.Add(new SampleDescriptor(typeof(HubWithAuthorizationSample), "Hub Authentication Sample", "This sample demonstrates the default access token authentication. The server sends a JWT token to the client with a new url. The client will connect to that new url and sends the JWT token.\n"));
             Samples.Add(new SampleDescriptor(typeof(HubWithPreAuthorizationSample), "Hub Pre-Authentication Sample", "This sample demonstrates manual authentication.\n"));
             Samples.Add(new SampleDescriptor(typeof(RedirectSample), "Hub Redirect Sample", "This sample demonstrates how the plugin handles redirection through the SignalR Core negotiation data.\n"));
+            Samples.Add(new SampleDescriptor(typeof(UploadHubSample), "Hub Upload Sample", "This sample demonstrates client -> server streaming capabilities introduced in asp.net core 3.\n"));
 #endif
 
-#if (!BESTHTTP_DISABLE_SIGNALR && !UNITY_WEBGL) || UNITY_EDITOR
+#if !BESTHTTP_DISABLE_SIGNALR && (!UNITY_WEBGL || UNITY_EDITOR)
             Samples.Add(new SampleDescriptor(null, "SignalR Samples", string.Empty) { IsLabel = true });
             Samples.Add(new SampleDescriptor(typeof(SimpleStreamingSample), "Simple Streaming", "A very simple example of a background thread that broadcasts the server time to all connected clients every two seconds.\n\nFeatures demoed in this example:\n-Subscribing and handling non-hub messages"));
             Samples.Add(new SampleDescriptor(typeof(ConnectionAPISample), "Connection API", "Demonstrates all features of the lower-level connection API including starting and stopping, sending and receiving messages, and managing groups.\n\nFeatures demoed in this example:\n-Instantiating and setting up a SignalR Connection to connect to a SignalR server\n-Changing the default Json encoder\n-Subscribing to state changes\n-Receiving and handling of non-hub messages\n-Sending non-hub messages\n-Managing groups"));
             Samples.Add(new SampleDescriptor(typeof(ConnectionStatusSample), "Connection Status", "Demonstrates how to handle the events that are raised when connections connect, reconnect and disconnect from the Hub API.\n\nFeatures demoed in this example:\n-Connecting to a Hub\n-Setting up a callback for Hub events\n-Handling server-sent method call requests\n-Calling a Hub-method on the server-side\n-Opening and closing the SignalR Connection"));
             Samples.Add(new SampleDescriptor(typeof(DemoHubSample), "Demo Hub", "A contrived example that exploits every feature of the Hub API.\n\nFeatures demoed in this example:\n-Creating and using wrapper Hub classes to encapsulate hub functions and events\n-Handling long running server-side functions by handling progress messages\n-Groups\n-Handling server-side functions with return value\n-Handling server-side functions throwing Exceptions\n-Calling server-side functions with complex type parameters\n-Calling server-side functions with array parameters\n-Calling overloaded server-side functions\n-Changing Hub states\n-Receiving and handling hub state changes\n-Calling server-side functions implemented in VB .NET"));
-#if !UNITY_WEBGL || UNITY_EDITOR
             Samples.Add(new SampleDescriptor(typeof(AuthenticationSample), "Authentication", "Demonstrates how to use the authorization features of the Hub API to restrict certain Hubs and methods to specific users.\n\nFeatures demoed in this example:\n-Creating and using wrapper Hub classes to encapsulate hub functions and events\n-Create and use a Header-based authenticator to access protected APIs\n-SignalR over HTTPS"));
 #endif
+
+#if !BESTHTTP_DISABLE_SERVERSENT_EVENTS
+            Samples.Add(new SampleDescriptor(null, "Server-Sent Events", string.Empty) { IsLabel = true });
+            Samples.Add(new SampleDescriptor(typeof(SimpleTest), "Simple Sample", "Simple Server-Sent Events sample to demonstrate setup and basic message handling."));
 #endif
 
 #if !BESTHTTP_DISABLE_CACHING

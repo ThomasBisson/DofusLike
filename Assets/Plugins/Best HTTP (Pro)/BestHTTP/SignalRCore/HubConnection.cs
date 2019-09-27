@@ -113,6 +113,8 @@ namespace BestHTTP.SignalRCore
         /// </summary>
         private long lastInvocationId = 0;
 
+        private int lastStreamId = 0;
+
         /// <summary>
         ///  Store the callback for all sent message that expect a return value from the server. All sent message has
         ///  a unique invocationId that will be sent back from the server.
@@ -214,7 +216,10 @@ namespace BestHTTP.SignalRCore
             //  it might return with additional information that could be useful.
 
             UriBuilder builder = new UriBuilder(this.Uri);
-            builder.Path += "/negotiate";
+            if (builder.Path.EndsWith("/"))
+                builder.Path += "negotiate";
+            else
+                builder.Path += "/negotiate";
 
             var request = new HTTPRequest(builder.Uri, HTTPMethods.Post, OnNegotiationRequestFinished);
             if (this.AuthenticationProvider != null)
@@ -394,12 +399,12 @@ namespace BestHTTP.SignalRCore
                                             var container = future.value;
 
                                             // While completion message must not contain any result, this should be future-proof
-                                            //if (!container.IsCanceled && message.Result != null)
-                                            //{
-                                            //    TResult[] results = (TResult[])this.Protocol.ConvertTo(typeof(TResult[]), message.Result);
-                                            //
-                                            //    container.AddItems(results);
-                                            //}
+                                            if (!container.IsCanceled && message.result != null)
+                                            {
+                                                TResult result = (TResult)this.Protocol.ConvertTo(typeof(TResult), message.result);
+
+                                                container.AddItem(result);
+                                            }
 
                                             future.Assign(container);
                                         }
@@ -487,12 +492,121 @@ namespace BestHTTP.SignalRCore
             return invocationId;
         }
 
-        private void SendMessage(Message message)
+        internal void SendMessage(Message message)
         {
             byte[] encoded = this.Protocol.EncodeMessage(message);
             this.Transport.Send(encoded);
 
             this.lastMessageSent = DateTime.UtcNow;
+        }
+
+        internal UploadItemController<StreamItemContainer<TResult>> UploadStreamWithDownStream<TResult>(string target, int paramCount)
+        {
+            Future<StreamItemContainer<TResult>> future = new Future<StreamItemContainer<TResult>>();
+
+            Action<Message> callback = (Message message) => {
+                switch (message.type)
+                {
+                    // StreamItem message contains only one item.
+                    case MessageTypes.StreamItem:
+                        {
+                            StreamItemContainer<TResult> container = future.value;
+
+                            if (container.IsCanceled)
+                                break;
+
+                            container.AddItem((TResult)this.Protocol.ConvertTo(typeof(TResult), message.item));
+
+                            // (re)assign the container to raise OnItem event
+                            future.AssignItem(container);
+                            break;
+                        }
+
+                    case MessageTypes.Completion:
+                        {
+                            bool isSuccess = string.IsNullOrEmpty(message.error);
+                            if (isSuccess)
+                            {
+                                StreamItemContainer<TResult> container = future.value;
+
+                                // While completion message must not contain any result, this should be future-proof
+                                if (!container.IsCanceled && message.result != null)
+                                {
+                                    TResult result = (TResult)this.Protocol.ConvertTo(typeof(TResult), message.result);
+
+                                    container.AddItem(result);
+                                }
+
+                                future.Assign(container);
+                            }
+                            else
+                                future.Fail(new Exception(message.error));
+                            break;
+                        }
+                }
+            };
+
+            long invocationId = System.Threading.Interlocked.Increment(ref this.lastInvocationId);
+
+            int[] streamIds = new int[paramCount];
+            for (int i = 0; i < paramCount; i++)
+                streamIds[i] = System.Threading.Interlocked.Increment(ref this.lastStreamId);
+
+            var controller = new UploadItemController<StreamItemContainer<TResult>>(this, invocationId, streamIds, future);
+
+            var messageToSend = new Message
+            {
+                type = MessageTypes.StreamInvocation,
+                invocationId = invocationId.ToString(),
+                target = target,
+                arguments = new object[0],
+                streamIds = streamIds,
+                nonblocking = false,
+            };
+
+            SendMessage(messageToSend);
+
+            this.invocations.Add(invocationId, callback);
+
+            future.BeginProcess(new StreamItemContainer<TResult>(invocationId));
+            return controller;
+        }
+
+        internal UploadItemController<TResult> Upload<TResult>(string target, int paramCount)
+        {
+            Future<TResult> future = new Future<TResult>();
+
+            Action<Message> callback = (Message message) => {
+                bool isSuccess = string.IsNullOrEmpty(message.error);
+                if (isSuccess)
+                    future.Assign((TResult)this.Protocol.ConvertTo(typeof(TResult), message.result));
+                else
+                    future.Fail(new Exception(message.error));
+            };
+
+            long invocationId = System.Threading.Interlocked.Increment(ref this.lastInvocationId);
+
+            int[] streamIds = new int[paramCount];
+            for (int i = 0; i < paramCount; i++)
+                streamIds[i] = System.Threading.Interlocked.Increment(ref this.lastStreamId);
+
+            var controller = new UploadItemController<TResult>(this, invocationId, streamIds, future);
+
+            var messageToSend = new Message
+            {
+                type = MessageTypes.Invocation,
+                invocationId = invocationId.ToString(),
+                target = target,
+                arguments = new object[0],
+                streamIds = streamIds,
+                nonblocking = false,
+            };
+
+            SendMessage(messageToSend);
+
+            this.invocations.Add(invocationId, callback);
+
+            return controller;
         }
 
         public void On(string methodName, Action callback)
@@ -665,6 +779,7 @@ namespace BestHTTP.SignalRCore
 
             if (this.State == state)
                 return;
+
 
             this.State = state;
 

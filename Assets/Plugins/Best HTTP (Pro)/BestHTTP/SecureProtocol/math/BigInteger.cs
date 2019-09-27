@@ -136,6 +136,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math
         public static readonly BigInteger One;
         public static readonly BigInteger Two;
         public static readonly BigInteger Three;
+        public static readonly BigInteger Four;
         public static readonly BigInteger Ten;
 
         //private readonly static byte[] BitCountTable =
@@ -209,6 +210,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math
             One = SMALL_CONSTANTS[1];
             Two = SMALL_CONSTANTS[2];
             Three = SMALL_CONSTANTS[3];
+            Four = SMALL_CONSTANTS[4];
             Ten = SMALL_CONSTANTS[10];
 
             radix2 = ValueOf(2);
@@ -249,7 +251,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math
             return (nBits + BitsPerByte - 1) / BitsPerByte;
         }
 
-        internal static BigInteger Arbitrary(int sizeInBits)
+        public static BigInteger Arbitrary(int sizeInBits)
         {
             return new BigInteger(sizeInBits, RandomSource);
         }

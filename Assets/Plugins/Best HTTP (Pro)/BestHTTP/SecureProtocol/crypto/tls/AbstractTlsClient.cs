@@ -38,7 +38,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Tls
         {
             switch (extensionType)
             {
-            case ExtensionType.elliptic_curves:
+            case ExtensionType.supported_groups:
                 /*
                  * Exception added based on field reports that some servers do send this, although the
                  * Supported Elliptic Curves Extension is clearly intended to be client-only. If
@@ -212,7 +212,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Tls
                  */
                 CheckForUnexpectedServerExtension(serverExtensions, ExtensionType.signature_algorithms);
 
-                CheckForUnexpectedServerExtension(serverExtensions, ExtensionType.elliptic_curves);
+                CheckForUnexpectedServerExtension(serverExtensions, ExtensionType.supported_groups);
 
                 if (TlsEccUtilities.IsEccCipherSuite(this.mSelectedCipherSuite))
                 {

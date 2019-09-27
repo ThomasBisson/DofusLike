@@ -2,6 +2,8 @@
 #pragma warning disable
 using System;
 
+using BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities;
+
 namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.EC.Multiplier
 {
     /**
@@ -20,12 +22,12 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.EC.Multiplier
          */
         protected override ECPoint MultiplyPositive(ECPoint p, BigInteger k)
         {
-            // Clamp the window width in the range [2, 16]
-            int width = System.Math.Max(2, System.Math.Min(16, GetWindowSize(k.BitLength)));
+            int minWidth = WNafUtilities.GetWindowSize(k.BitLength);
 
-            WNafPreCompInfo wnafPreCompInfo = WNafUtilities.Precompute(p, width, true);
-            ECPoint[] preComp = wnafPreCompInfo.PreComp;
-            ECPoint[] preCompNeg = wnafPreCompInfo.PreCompNeg;
+            WNafPreCompInfo info = WNafUtilities.Precompute(p, minWidth, true);
+            ECPoint[] preComp = info.PreComp;
+            ECPoint[] preCompNeg = info.PreCompNeg;
+            int width = info.Width;
 
             int[] wnaf = WNafUtilities.GenerateCompactWindowNaf(width, k);
 
@@ -48,7 +50,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.EC.Multiplier
                 // Optimization can only be used for values in the lower half of the table
                 if ((n << 2) < (1 << width))
                 {
-                    int highest = LongArray.BitLengths[n];
+                    int highest = 32 - Integers.NumberOfLeadingZeros(n);
 
                     // TODO Get addition/doubling cost ratio from curve and compare to 'scale' to see if worth substituting?
                     int scale = width - highest;
@@ -84,17 +86,6 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.EC.Multiplier
             }
 
             return R;
-        }
-
-        /**
-         * Determine window width to use for a scalar multiplication of the given size.
-         * 
-         * @param bits the bit-length of the scalar to multiply by
-         * @return the window size to use
-         */
-        protected virtual int GetWindowSize(int bits)
-        {
-            return WNafUtilities.GetWindowSize(bits);
         }
     }
 }

@@ -51,17 +51,11 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Pkcs
 			get { return macData; }
 		}
 
-		public override Asn1Object ToAsn1Object()
+        public override Asn1Object ToAsn1Object()
         {
-            Asn1EncodableVector v = new Asn1EncodableVector(
-				new DerInteger(3), contentInfo);
-
-			if (macData != null)
-            {
-                v.Add(macData);
-            }
-
-			return new BerSequence(v);
+            Asn1EncodableVector v = new Asn1EncodableVector(new DerInteger(3), contentInfo);
+            v.AddOptional(macData);
+            return new BerSequence(v);
         }
     }
 }

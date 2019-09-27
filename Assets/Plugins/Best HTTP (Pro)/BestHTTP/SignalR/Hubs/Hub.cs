@@ -154,15 +154,18 @@ namespace BestHTTP.SignalR.Hubs
         {
             IHub thisHub = this as IHub;
 
-            lock (thisHub.Connection.SyncRoot)
-            {
-                // Start over the counter if we are reached the max value if the UInt64 type.
-                // While we are using this property only here, we don't want to make it static to avoid another thread synchronization, neither we want to make it a Hub-instance field to achieve better deuggability.
-                thisHub.Connection.ClientMessageCounter %= UInt64.MaxValue;
+            // Start over the counter if we are reached the max value if the long type.
+            // While we are using this property only here, we don't want to make it static to avoid another thread synchronization, neither we want to make it a Hub-instance field to achieve better debuggability.
 
-                // Create and send the client message
-                return thisHub.Call(new ClientMessage(this, method, args, thisHub.Connection.ClientMessageCounter++, onResult, onResultError, onProgress));
-            }
+            long newValue, originalValue;
+            do
+            {
+                originalValue = thisHub.Connection.ClientMessageCounter;
+                newValue = (originalValue % long.MaxValue) + 1;
+            } while (System.Threading.Interlocked.CompareExchange(ref thisHub.Connection.ClientMessageCounter, newValue, originalValue) != originalValue);
+
+            // Create and send the client message
+            return thisHub.Call(new ClientMessage(this, method, args, (ulong)thisHub.Connection.ClientMessageCounter, onResult, onResultError, onProgress));
         }
 
         #endregion
@@ -173,13 +176,10 @@ namespace BestHTTP.SignalR.Hubs
         {
             IHub thisHub = this as IHub;
 
-            lock (thisHub.Connection.SyncRoot)
-            {
-                if (!thisHub.Connection.SendJson(BuildMessage(msg)))
-                    return false;
+            if (!thisHub.Connection.SendJson(BuildMessage(msg)))
+                return false;
 
-                SentMessages.Add(msg.CallIdx, msg);
-            }
+            SentMessages.Add(msg.CallIdx, msg);
 
             return true;
         }

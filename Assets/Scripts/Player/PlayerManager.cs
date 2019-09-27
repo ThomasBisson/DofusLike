@@ -13,16 +13,17 @@ public class PlayerManager : Characters
     //private xuchuDemo m_xuchuDemo;
 
     /*************************** TEST STRATEGY *******************/
-    public enum PossibleStrategy
+    public enum PlayerStartegy
     {
         Fight,
         Main
     }
+    private PlayerStartegy m_playerStrategy;
 
     private PlayerStrategy m_strategy;
 
 
-    
+
 
     #endregion
 
@@ -45,7 +46,7 @@ public class PlayerManager : Characters
         base.Update();
         if (m_strategy != null)
         {
-            m_strategy.HandleClickOnGround();
+            m_strategy.Update();
         }
     }
 
@@ -62,6 +63,18 @@ public class PlayerManager : Characters
         m_animator.SetBool("isRunning", true);
         transform.LookAt(m_targetPosition);
     }
+
+    //public Vector3 GetNearestPointOnGrid(Vector3 pos)
+    //{
+    //    switch(m_playerStrategy)
+    //    {
+    //        case PlayerStartegy.Main:
+    //            return m_gridMain.GetNearestPointOnGrid(pos);
+    //        case PlayerStartegy.Fight:
+    //            return m_gridFight.GetNearestPointOnGrid(pos);
+    //    }
+    //    return Vector3.zero;
+    //}
 
     #endregion
 
@@ -107,35 +120,33 @@ public class PlayerManager : Characters
 
     #region Strategy
 
-    public void ChangeStrategy(PossibleStrategy strategy)
+    public void ChangeStrategy(PlayerStartegy strategy)
     {
+        m_playerStrategy = strategy;
         switch(strategy)
         {
-            case PossibleStrategy.Main:
+            case PlayerStartegy.Main:
+                //Set camera
+                Camera.main.transform.parent.GetComponent<FollowTarget>().Target = transform;
+
                 m_strategy = new PlayerMain(this);
                 m_gridMain = FindObjectOfType<GridMain>();
                 GetPlayerMain().SetGetterCallbacks(
                     delegate {
                         return this.m_gridMain;
-                    }, 
-                    delegate { 
-                        return this.transform;
-                    },
-                    TryTofightEnnemmy,
-                    StopTryingToFightEnnemy
+                    }
                 );
                 GetPlayerMain().Start();
                 break;
 
-            case PossibleStrategy.Fight:
+            case PlayerStartegy.Fight:
                 m_strategy = new PlayerFight(this);
                 m_gridFight = FindObjectOfType<GridFight>();
+                if(m_gridFight == null)
+                    Debug.Log("player mana : grid fight null");
                 GetPlayerFight().SetGetterCallbacks(
                     () => {
                         return m_gridFight;
-                    },
-                    () => {
-                        return transform;
                     },
                     () => {
                         return m_spellTree;
@@ -146,17 +157,17 @@ public class PlayerManager : Characters
         }
     }
 
-    #region MainHelper
+    #region EnnemyAggro
 
     private Coroutine m_aggroingEnnemy;
 
-    private void TryTofightEnnemmy(string id, Transform ennemy, float aggroRange)
+    public void TryTofightEnnemmy(string id, Transform ennemy, float aggroRange)
     {
         StopTryingToFightEnnemy();
         m_aggroingEnnemy = StartCoroutine(CheckPosition(id, ennemy, aggroRange));
     }
 
-    private void StopTryingToFightEnnemy()
+    public void StopTryingToFightEnnemy()
     {
         if(m_aggroingEnnemy != null)
             StopCoroutine(m_aggroingEnnemy);
@@ -165,7 +176,7 @@ public class PlayerManager : Characters
     private IEnumerator CheckPosition(string id, Transform ennemy, float aggroRange)
     {
         yield return new WaitUntil(() => {
-            Debug.Log(Vector3.Distance(ennemy.position, transform.position) <= aggroRange);
+            //Debug.Log(Vector3.Distance(ennemy.position, transform.position) <= aggroRange);
             return Vector3.Distance(ennemy.position, transform.position) <= aggroRange;
         });
         m_animator.SetBool("isRunning", false);

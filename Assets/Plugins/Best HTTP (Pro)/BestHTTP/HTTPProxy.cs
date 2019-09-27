@@ -80,7 +80,7 @@ namespace BestHTTP
         {
             bool isSecure = HTTPProtocolFactory.IsSecureProtocol(request.CurrentUri);
 
-            if ((!this.IsTransparent || (isSecure && this.NonTransparentForHTTPS)))
+            if (!this.IsTransparent || (isSecure && this.NonTransparentForHTTPS))
             {
                 using (var bufferedStream = new WriteOnlyBufferedStream(stream, HTTPRequest.UploadChunkSize))
                 using (var outStream = new BinaryWriter(bufferedStream, Encoding.UTF8))

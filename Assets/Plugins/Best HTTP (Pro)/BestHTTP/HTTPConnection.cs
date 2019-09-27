@@ -138,11 +138,7 @@ namespace BestHTTP
 
         #region Request Processing Implementation
 
-        protected override
-#if NETFX_CORE
-            async
-#endif
-            void ThreadFunc(object param)
+        protected override void ThreadFunc()
         {
             bool alreadyReconnected = false;
             bool redirected = false;
@@ -163,14 +159,7 @@ namespace BestHTTP
                 do // of while (reconnect)
                 {
                     if (cause == RetryCauses.Reconnect)
-                    {
                         Close();
-#if NETFX_CORE
-                        await Task.Delay(100);
-#else
-                        Thread.Sleep(100);
-#endif
-                    }
 
                     LastProcessedUri = CurrentRequest.CurrentUri;
 
@@ -462,14 +451,6 @@ namespace BestHTTP
             {
                 Client.ConnectTimeout = CurrentRequest.ConnectTimeout;
 
-#if NETFX_CORE
-                Client.UseHTTPSProtocol =
-                #if !BESTHTTP_DISABLE_ALTERNATE_SSL && (!UNITY_WEBGL || UNITY_EDITOR)
-                    !CurrentRequest.UseAlternateSSL &&
-                #endif
-                    HTTPProtocolFactory.IsSecureProtocol(uri);
-#endif
-
                 if (HTTPManager.Logger.Level == Logger.Loglevels.All)
                     HTTPManager.Logger.Verbose("HTTPConnection", string.Format("'{0}' - Connecting to {1}:{2}", this.CurrentRequest.CurrentUri.ToString(), uri.Host, uri.Port.ToString()));
 
@@ -626,20 +607,29 @@ namespace BestHTTP
                 return false;
             }
 
-            CurrentRequest.Response.CacheFileInfo = cacheEntity;
-
-            int bodyLength;
-            using (var cacheStream = cacheEntity.GetBodyStream(out bodyLength))
+            try
             {
-                if (cacheStream == null)
-                    return false;
+                int bodyLength;
+                using (var cacheStream = cacheEntity.GetBodyStream(out bodyLength))
+                {
+                    if (cacheStream == null)
+                        return false;
 
-                if (!CurrentRequest.Response.HasHeader("content-length"))
-                    CurrentRequest.Response.Headers.Add("content-length", new List<string>(1) { bodyLength.ToString() });
-                CurrentRequest.Response.IsFromCache = true;
+                    if (!CurrentRequest.Response.HasHeader("content-length"))
+                        CurrentRequest.Response.AddHeader("content-length", bodyLength.ToString());
+                    CurrentRequest.Response.IsFromCache = true;
 
-                if (!CurrentRequest.CacheOnly)
-                    CurrentRequest.Response.ReadRaw(cacheStream, bodyLength);
+                    if (!CurrentRequest.CacheOnly)
+                        CurrentRequest.Response.ReadRaw(cacheStream, bodyLength);
+                }
+
+                CurrentRequest.Response.CacheFileInfo = cacheEntity;
+            }
+            catch
+            {
+                cacheEntity.Delete();
+
+                return false;
             }
 
             return true;

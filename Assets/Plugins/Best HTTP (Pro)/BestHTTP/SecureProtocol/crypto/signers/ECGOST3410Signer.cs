@@ -8,6 +8,7 @@ using BestHTTP.SecureProtocol.Org.BouncyCastle.Math;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Math.EC;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Math.EC.Multiplier;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Security;
+using BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities;
 
 namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Signers
 {
@@ -19,16 +20,19 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Signers
     {
         private ECKeyParameters key;
         private SecureRandom random;
+        private bool forSigning;
 
         public virtual string AlgorithmName
         {
-            get { return "ECGOST3410"; }
+            get { return key.AlgorithmName; }
         }
 
         public virtual void Init(
             bool				forSigning,
             ICipherParameters	parameters)
         {
+            this.forSigning = forSigning;
+
             if (forSigning)
             {
                 if (parameters is ParametersWithRandom)
@@ -72,12 +76,12 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Signers
         public virtual BigInteger[] GenerateSignature(
             byte[] message)
         {
-            byte[] mRev = new byte[message.Length]; // conversion is little-endian
-            for (int i = 0; i != mRev.Length; i++)
+            if (!forSigning)
             {
-                mRev[i] = message[mRev.Length - 1 - i];
+                throw new InvalidOperationException("not initialized for signing");
             }
 
+            byte[] mRev = Arrays.Reverse(message); // conversion is little-endian
             BigInteger e = new BigInteger(1, mRev);
 
             ECDomainParameters ec = key.Parameters;
@@ -122,12 +126,12 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Signers
             BigInteger	r,
             BigInteger	s)
         {
-            byte[] mRev = new byte[message.Length]; // conversion is little-endian
-            for (int i = 0; i != mRev.Length; i++)
+            if (forSigning)
             {
-                mRev[i] = message[mRev.Length - 1 - i];
+                throw new InvalidOperationException("not initialized for verification");
             }
 
+            byte[] mRev = Arrays.Reverse(message); // conversion is little-endian
             BigInteger e = new BigInteger(1, mRev);
             BigInteger n = key.Parameters.N;
 

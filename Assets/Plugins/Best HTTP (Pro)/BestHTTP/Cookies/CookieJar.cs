@@ -3,6 +3,7 @@
 using BestHTTP.PlatformSupport.FileSystem;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace BestHTTP.Cookies
 {
@@ -65,7 +66,7 @@ namespace BestHTTP.Cookies
         /// <summary>
         /// Synchronization object for thread safety.
         /// </summary>
-        private static object Locker = new object();
+        private static ReaderWriterLockSlim rwLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
 
 #if !BESTHTTP_DISABLE_COOKIE_SAVE
         private static bool _isSavingSupported;
@@ -104,66 +105,60 @@ namespace BestHTTP.Cookies
             if (response == null)
                 return;
 
-            lock(Locker)
+            List<Cookie> newCookies = new List<Cookie>();
+            var setCookieHeaders = response.GetHeaderValues("set-cookie");
+
+            // No cookies. :'(
+            if (setCookieHeaders == null)
+                return;
+
+            foreach (var cookieHeader in setCookieHeaders)
             {
-                try
+                Cookie cookie = Cookie.Parse(cookieHeader, response.baseRequest.CurrentUri);
+                if (cookie != null)
                 {
-                    Maintain();
-
-                    List<Cookie> newCookies = new List<Cookie>();
-                    var setCookieHeaders = response.GetHeaderValues("set-cookie");
-
-                    // No cookies. :'(
-                    if (setCookieHeaders == null)
-                        return;
-
-                    foreach (var cookieHeader in setCookieHeaders)
+                    rwLock.EnterWriteLock();
+                    try
                     {
-                        try
+                        int idx;
+                        var old = Find(cookie, out idx);
+
+                        // if no value for the cookie or already expired then the server asked us to delete the cookie
+                        bool expired = string.IsNullOrEmpty(cookie.Value) || !cookie.WillExpireInTheFuture();
+
+                        if (!expired)
                         {
-                            Cookie cookie = Cookie.Parse(cookieHeader, response.baseRequest.CurrentUri);
-
-                            if (cookie != null)
+                            // no old cookie, add it straight to the list
+                            if (old == null)
                             {
-                                int idx;
-                                var old = Find(cookie, out idx);
+                                Cookies.Add(cookie);
 
-                                // if no value for the cookie or already expired then the server asked us to delete the cookie
-                                bool expired = string.IsNullOrEmpty(cookie.Value) || !cookie.WillExpireInTheFuture();
+                                newCookies.Add(cookie);
+                            }
+                            else
+                            {
+                                // Update the creation-time of the newly created cookie to match the creation-time of the old-cookie.
+                                cookie.Date = old.Date;
+                                Cookies[idx] = cookie;
 
-                                if (!expired)
-                                {
-                                    // no old cookie, add it straight to the list
-                                    if (old == null)
-                                    {
-                                        Cookies.Add(cookie);
-
-                                        newCookies.Add(cookie);
-                                    }
-                                    else
-                                    {
-                                        // Update the creation-time of the newly created cookie to match the creation-time of the old-cookie.
-                                        cookie.Date = old.Date;
-                                        Cookies[idx] = cookie;
-
-                                        newCookies.Add(cookie);
-                                    }
-                                }
-                                else if (idx != -1) // delete the cookie
-                                    Cookies.RemoveAt(idx);
+                                newCookies.Add(cookie);
                             }
                         }
-                        catch
-                        {
-                            // Ignore cookie on error
-                        }
+                        else if (idx != -1) // delete the cookie
+                            Cookies.RemoveAt(idx);
                     }
-
-                    response.Cookies = newCookies;
+                    catch
+                    {
+                        // Ignore cookie on error
+                    }
+                    finally
+                    {
+                        rwLock.ExitWriteLock();
+                    }
                 }
-                catch
-                {}
             }
+
+            response.Cookies = newCookies;
         }
 
         /// <summary>
@@ -174,42 +169,46 @@ namespace BestHTTP.Cookies
             // It's not the same as in the rfc:
             //  http://tools.ietf.org/html/rfc6265#section-5.3
 
-            lock (Locker)
+            rwLock.EnterWriteLock();
+            try
             {
-                try
+                uint size = 0;
+
+                for (int i = 0; i < Cookies.Count; )
                 {
-                    uint size = 0;
+                    var cookie = Cookies[i];
 
-                    for (int i = 0; i < Cookies.Count; )
+                    // Remove expired or not used cookies
+                    if (!cookie.WillExpireInTheFuture() || (cookie.LastAccess + AccessThreshold) < DateTime.UtcNow)
                     {
-                        var cookie = Cookies[i];
-
-                        // Remove expired or not used cookies
-                        if (!cookie.WillExpireInTheFuture() || (cookie.LastAccess + AccessThreshold) < DateTime.UtcNow)
-                            Cookies.RemoveAt(i);
-                        else
-                        {
-                            if (!cookie.IsSession)
-                                size += cookie.GuessSize();
-                            i++;
-                        }
+                        Cookies.RemoveAt(i);
                     }
-
-                    if (size > HTTPManager.CookieJarSize)
+                    else
                     {
-                        Cookies.Sort();
-
-                        while (size > HTTPManager.CookieJarSize && Cookies.Count > 0)
-                        {
-                            var cookie = Cookies[0];
-                            Cookies.RemoveAt(0);
-
-                            size -= cookie.GuessSize();
-                        }
+                        if (!cookie.IsSession)
+                            size += cookie.GuessSize();
+                        i++;
                     }
                 }
-                catch
-                { }
+
+                if (size > HTTPManager.CookieJarSize)
+                {
+                    Cookies.Sort();
+
+                    while (size > HTTPManager.CookieJarSize && Cookies.Count > 0)
+                    {
+                        var cookie = Cookies[0];
+                        Cookies.RemoveAt(0);
+
+                        size -= cookie.GuessSize();
+                    }
+                }
+            }
+            catch
+            { }
+            finally
+            {
+                rwLock.ExitWriteLock();
             }
         }
 
@@ -223,40 +222,42 @@ namespace BestHTTP.Cookies
             if (!IsSavingSupported)
                 return;
 
-            lock (Locker)
+            if (!Loaded)
+                return;
+
+            // Delete any expired cookie
+            Maintain();
+
+            rwLock.EnterReadLock();
+            try
             {
-                if (!Loaded)
-                    return;
+                if (!HTTPManager.IOService.DirectoryExists(CookieFolder))
+                    HTTPManager.IOService.DirectoryCreate(CookieFolder);
 
-                try
+                using (var fs = HTTPManager.IOService.CreateFileStream(LibraryPath, FileStreamModes.Create))
+                using (var bw = new System.IO.BinaryWriter(fs))
                 {
-                    // Delete any expired cookie
-                    Maintain();
+                    bw.Write(Version);
 
-                    if (!HTTPManager.IOService.DirectoryExists(CookieFolder))
-                        HTTPManager.IOService.DirectoryCreate(CookieFolder);
+                    // Count how many non-session cookies we have
+                    int count = 0;
+                    foreach (var cookie in Cookies)
+                        if (!cookie.IsSession)
+                            count++;
 
-                    using (var fs = HTTPManager.IOService.CreateFileStream(LibraryPath, FileStreamModes.Create))
-                    using (var bw = new System.IO.BinaryWriter(fs))
-                    {
-                        bw.Write(Version);
+                    bw.Write(count);
 
-                        // Count how many non-session cookies we have
-                        int count = 0;
-                        foreach (var cookie in Cookies)
-                            if (!cookie.IsSession)
-                                count++;
-
-                        bw.Write(count);
-
-                        // Save only the persistable cookies
-                        foreach (var cookie in Cookies)
-                            if (!cookie.IsSession)
-                                cookie.SaveTo(bw);
-                    }
+                    // Save only the persistable cookies
+                    foreach (var cookie in Cookies)
+                        if (!cookie.IsSession)
+                            cookie.SaveTo(bw);
                 }
-                catch
-                { }
+            }
+            catch
+            { }
+            finally
+            {
+                rwLock.ExitReadLock();
             }
 #endif
         }
@@ -270,47 +271,46 @@ namespace BestHTTP.Cookies
             if (!IsSavingSupported)
                 return;
 
-            lock (Locker)
+            if (Loaded)
+                return;
+
+            SetupFolder();
+
+            rwLock.EnterWriteLock();
+            try
             {
-                if (Loaded)
+                Cookies.Clear();
+
+                if (!HTTPManager.IOService.DirectoryExists(CookieFolder))
+                    HTTPManager.IOService.DirectoryCreate(CookieFolder);
+
+                if (!HTTPManager.IOService.FileExists(LibraryPath))
                     return;
 
-                SetupFolder();
-
-                try
+                using (var fs = HTTPManager.IOService.CreateFileStream(LibraryPath, FileStreamModes.Open))
+                using (var br = new System.IO.BinaryReader(fs))
                 {
-                    Cookies.Clear();
+                    /*int version = */br.ReadInt32();
+                    int cookieCount = br.ReadInt32();
 
-                    if (!HTTPManager.IOService.DirectoryExists(CookieFolder))
-                        HTTPManager.IOService.DirectoryCreate(CookieFolder);
-
-                    if (!HTTPManager.IOService.FileExists(LibraryPath))
-                        return;
-
-                    using (var fs = HTTPManager.IOService.CreateFileStream(LibraryPath, FileStreamModes.Open))
-                    using (var br = new System.IO.BinaryReader(fs))
+                    for (int i = 0; i < cookieCount; ++i)
                     {
-                        /*int version = */br.ReadInt32();
-                        int cookieCount = br.ReadInt32();
+                        Cookie cookie = new Cookie();
+                        cookie.LoadFrom(br);
 
-                        for (int i = 0; i < cookieCount; ++i)
-                        {
-                            Cookie cookie = new Cookie();
-                            cookie.LoadFrom(br);
-
-                            if (cookie.WillExpireInTheFuture())
-                                Cookies.Add(cookie);
-                        }
+                        if (cookie.WillExpireInTheFuture())
+                            Cookies.Add(cookie);
                     }
                 }
-                catch
-                {
-                    Cookies.Clear();
-                }
-                finally
-                {
-                    Loaded = true;
-                }
+            }
+            catch
+            {
+                Cookies.Clear();
+            }
+            finally
+            {
+                Loaded = true;
+                rwLock.ExitWriteLock();
             }
 #endif
         }
@@ -324,10 +324,11 @@ namespace BestHTTP.Cookies
         /// </summary>
         public static List<Cookie> Get(Uri uri)
         {
-            lock (Locker)
-            {
-                Load();
+            Load();
 
+            rwLock.EnterReadLock();
+            try
+            {
                 List<Cookie> result = null;
 
                 for (int i = 0; i < Cookies.Count; ++i)
@@ -344,6 +345,10 @@ namespace BestHTTP.Cookies
 
                 return result;
             }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -359,10 +364,11 @@ namespace BestHTTP.Cookies
         /// </summary>
         public static void Set(Cookie cookie)
         {
-            lock (Locker)
-            {
-                Load();
+            Load();
 
+            rwLock.EnterWriteLock();
+            try
+            {
                 int idx;
                 Find(cookie, out idx);
 
@@ -371,16 +377,17 @@ namespace BestHTTP.Cookies
                 else
                     Cookies.Add(cookie);
             }
+            finally
+            {
+                rwLock.ExitWriteLock();
+            }
         }
 
         public static List<Cookie> GetAll()
         {
-            lock (Locker)
-            {
-                Load();
+            Load();
 
-                return Cookies;
-            }
+            return Cookies;
         }
 
         /// <summary>
@@ -388,11 +395,16 @@ namespace BestHTTP.Cookies
         /// </summary>
         public static void Clear()
         {
-            lock (Locker)
-            {
-                Load();
+            Load();
 
+            rwLock.EnterWriteLock();
+            try
+            {
                 Cookies.Clear();
+            }
+            finally
+            {
+                rwLock.ExitWriteLock();
             }
         }
 
@@ -401,10 +413,11 @@ namespace BestHTTP.Cookies
         /// </summary>
         public static void Clear(TimeSpan olderThan)
         {
-            lock (Locker)
-            {
-                Load();
+            Load();
 
+            rwLock.EnterWriteLock();
+            try
+            {
                 for (int i = 0; i < Cookies.Count; )
                 {
                     var cookie = Cookies[i];
@@ -416,6 +429,10 @@ namespace BestHTTP.Cookies
                         i++;
                 }
             }
+            finally
+            {
+                rwLock.ExitWriteLock();
+            }
         }
 
         /// <summary>
@@ -423,10 +440,11 @@ namespace BestHTTP.Cookies
         /// </summary>
         public static void Clear(string domain)
         {
-            lock (Locker)
-            {
-                Load();
+            Load();
 
+            rwLock.EnterWriteLock();
+            try
+            {
                 for (int i = 0; i < Cookies.Count; )
                 {
                     var cookie = Cookies[i];
@@ -438,14 +456,19 @@ namespace BestHTTP.Cookies
                         i++;
                 }
             }
+            finally
+            {
+                rwLock.ExitWriteLock();
+            }
         }
 
         public static void Remove(Uri uri, string name)
         {
-            lock(Locker)
-            {
-                Load();
+            Load();
 
+            rwLock.EnterWriteLock();
+            try
+            {
                 for (int i = 0; i < Cookies.Count; )
                 {
                     var cookie = Cookies[i];
@@ -455,6 +478,10 @@ namespace BestHTTP.Cookies
                     else
                         i++;
                 }
+            }
+            finally
+            {
+                rwLock.ExitWriteLock();
             }
         }
 

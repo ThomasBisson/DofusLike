@@ -7,6 +7,7 @@ using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.CryptoPro;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.EdEC;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Oiw;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Pkcs;
+using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Rosstandart;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Sec;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.X509;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.X9;
@@ -119,10 +120,35 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkcs
 
             if (privateKey is ECPrivateKeyParameters)
             {
-                ECPrivateKeyParameters priv = (ECPrivateKeyParameters)privateKey;
+                ECPrivateKeyParameters priv = (ECPrivateKeyParameters) privateKey;                 
                 DerBitString publicKey = new DerBitString(ECKeyPairGenerator.GetCorrespondingPublicKey(priv).Q.GetEncoded(false));
 
                 ECDomainParameters dp = priv.Parameters;
+
+                // ECGOST3410
+                if (dp is ECGost3410Parameters)
+                {
+                    ECGost3410Parameters domainParameters = (ECGost3410Parameters) dp;
+
+                    Gost3410PublicKeyAlgParameters gostParams = new Gost3410PublicKeyAlgParameters(
+                        (domainParameters).PublicKeyParamSet,
+                        (domainParameters).DigestParamSet,
+                        (domainParameters).EncryptionParamSet);
+
+                    bool is512 = priv.D.BitLength > 256;
+                    DerObjectIdentifier identifier = (is512) ?
+                        RosstandartObjectIdentifiers.id_tc26_gost_3410_12_512 :
+                        RosstandartObjectIdentifiers.id_tc26_gost_3410_12_256;
+                    int size = (is512) ? 64 : 32;
+
+                    byte[] encKey = new byte[size];
+
+                    ExtractBytes(encKey, size, 0, priv.D);
+
+                    return new PrivateKeyInfo(new AlgorithmIdentifier(identifier, gostParams), new DerOctetString(encKey));
+                } 
+
+
                 int orderBitLength = dp.N.BitLength;
 
                 AlgorithmIdentifier algID;
@@ -246,6 +272,22 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkcs
             byte[] keyBytes = cipher.DoFinal(encInfo.GetEncryptedData());
 
             return PrivateKeyInfo.GetInstance(keyBytes);
+        }
+
+        private static void ExtractBytes(byte[] encKey, int size, int offSet, BigInteger bI)
+        {
+            byte[] val = bI.ToByteArray();
+            if (val.Length < size)
+            {
+                byte[] tmp = new byte[size];
+                Array.Copy(val, 0, tmp, tmp.Length - val.Length, val.Length);
+                val = tmp;
+            }
+
+            for (int i = 0; i != size; i++)
+            {
+                encKey[offSet + i] = val[val.Length - 1 - i];
+            }
         }
     }
 }

@@ -53,6 +53,7 @@ namespace BestHTTP.SignalRCore.Messages
         public bool nonblocking;
         public string target;
         public object[] arguments;
+        public int[] streamIds;
         public object item;
         public object result;
         public string error;
@@ -62,7 +63,7 @@ namespace BestHTTP.SignalRCore.Messages
             switch (this.type)
             {
                 case MessageTypes.Invocation:
-                    return string.Format("[Invocation Id: {0}, Target: '{1}', Argument count: {2}]", this.invocationId, this.target, this.arguments != null ? this.arguments.Length : 0);
+                    return string.Format("[Invocation Id: {0}, Target: '{1}', Argument count: {2}, Stream Ids: {3}]", this.invocationId, this.target, this.arguments != null ? this.arguments.Length : 0, this.streamIds != null ? this.streamIds.Length : 0);
                 case MessageTypes.StreamItem:
                     return string.Format("[StreamItem Id: {0}, Item: {1}]", this.invocationId, this.item.ToString());
                 case MessageTypes.Completion:

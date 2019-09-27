@@ -23,7 +23,6 @@ public class NetworkClient : MonoBehaviour
 
     private Dictionary<string, NetworkIdentity> m_serverObjects = new Dictionary<string, NetworkIdentity>();
 
-
     //NEW
     #region PUBLIC_VARS
 
@@ -40,7 +39,6 @@ public class NetworkClient : MonoBehaviour
 
     #region PRIVATE_VARS
 
-    //private PlayerManager m_playerManager;
 
     #endregion
 
@@ -72,7 +70,7 @@ public class NetworkClient : MonoBehaviour
         //options.ReconnectionDelay = miliSecForReconnect;
 
         //Server URI
-        socketManagerRef = new SocketManager(new Uri("http://127.0.0.1:8080/socket.io/")/*, options*/);
+        socketManagerRef = new SocketManager(new Uri("http://127.0.0.1:60000/socket.io/")/*, options*/);
 
         socketManagerRef.Open();
     }
@@ -96,12 +94,20 @@ public class NetworkClient : MonoBehaviour
             Debug.Log("Connection made to the server !");
         });
 
+        socketManagerRef.Socket.On("LoadMainScene", (socket, packet, args) =>
+        {
+            MenuTemporary.Instance.GoToMainScene();
+        });
+
         socketManagerRef.Socket.On("register", (socket, packet, args) =>
         {
             var data = args[0] as Dictionary<string, object>;
             ClientID = data["id"] as string;
 
             Debug.Log("Our client's ID : " + ClientID);
+
+            m_networkContainer = new GameObject().transform;
+            m_networkContainer.name = "ServerSpawnObjects";
         });
 
         socketManagerRef.Socket.On("playerDisconnect", (socket, packet, args) =>
@@ -119,11 +125,11 @@ public class NetworkClient : MonoBehaviour
 
         socketManagerRef.Socket.On("spawnPlayer", (socket, packet, args) =>
         {
-            Debug.LogError("Player : \n" + packet);
+            Debug.Log("Player : \n" + packet);
 
             //Get needed values in data
             var dataPlayer = args[0] as Dictionary<string, object>;
-            var dataCharacteristic = dataPlayer["characteristic"] as Dictionary<string, object>;
+            var dataCharacteristic = dataPlayer["baseCharacteristic"] as Dictionary<string, object>;
 
             //Create a player from resources
             GameObject go = Instantiate((GameObject)Resources.Load("PlayersPrefabs/" + dataCharacteristic["name"] as string));
@@ -145,7 +151,7 @@ public class NetworkClient : MonoBehaviour
 
             //Get needed values in data
             var dataPlayer = args[0] as Dictionary<string, object>;
-            var dataCharacteristic = dataPlayer["characteristic"] as Dictionary<string, object>;
+            var dataCharacteristic = dataPlayer["baseCharacteristic"] as Dictionary<string, object>;
 
             //Create a player from resources
             GameObject go = Instantiate((GameObject)Resources.Load("OtherPlayersPrefabs/" + dataCharacteristic["name"] as string));
@@ -163,7 +169,7 @@ public class NetworkClient : MonoBehaviour
 
         socketManagerRef.Socket.On("spawnEnnemies", (socket, packet, args) =>
         {
-            Debug.LogError("Ennemy : \n" + packet);
+            Debug.Log("Ennemy : \n" + packet);
 
             //Get needed values in data
             var dataGroup = args[0] as Dictionary<string, object>;
@@ -175,7 +181,7 @@ public class NetworkClient : MonoBehaviour
             foreach (var obj in dataEnnemiesAsList)
             {
                 dataEnnemies.Add(obj as Dictionary<string, object>);
-                dataEnnemiesCaracteristic.Add(dataEnnemies[dataEnnemies.Count - 1]["characteristic"] as Dictionary<string, object>);
+                dataEnnemiesCaracteristic.Add(dataEnnemies[dataEnnemies.Count - 1]["baseCharacteristic"] as Dictionary<string, object>);
             }
             string id = dataGroup["id"] as string;
 
@@ -259,9 +265,10 @@ public class NetworkClient : MonoBehaviour
         });
 
         socketManagerRef.Socket.On("UpdateCharacterStats", (socket, packet, args) => {
-            Debug.Log(packet);
+            //Debug.Log(packet);
             var data = args[0] as Dictionary<string, object>;
             var character = m_serverObjects[data["id"] as string].GetComponent<Characters>();
+            var spellsCooldown = data["spellsCooldown"] as Dictionary<String, object>;
             if (character.m_character == Characters.Character.PLAYER)
             {
                 if ((character as PlayerManager) != null)
@@ -270,6 +277,15 @@ public class NetworkClient : MonoBehaviour
                     (character as PlayerManager).m_stats.CurrentShield = (int)(double)data["currentShield"];
                     (character as PlayerManager).m_stats.CurrentActionPoint = (int)(double)data["currentActionPoints"];
                     (character as PlayerManager).m_stats.CurrentMovementPoint = (int)(double)data["currentMovementPoints"];
+
+                    //time
+                    (character as PlayerManager).SetTime((int)(double)data["timeInTurn"], (int)(double)data["actualTimeInTurn"]);
+
+                    //Cooldown spellsCooldown
+                    Dictionary<String, float> dicCooldown = new Dictionary<string, float>();
+                    foreach (var spellCooldown in spellsCooldown)
+                        dicCooldown.Add(spellCooldown.Key, (int)(double)spellCooldown.Value);
+                    (character as PlayerManager).GetPlayerFight().SetSpellActualCooldown(dicCooldown);
                 }
             }
             else
@@ -280,6 +296,9 @@ public class NetworkClient : MonoBehaviour
                     (character as EnnemyManager).m_stats.CurrentShield = (int)(double)data["currentShield"];
                     (character as EnnemyManager).m_stats.CurrentActionPoint = (int)(double)data["currentActionPoints"];
                     (character as EnnemyManager).m_stats.CurrentMovementPoint = (int)(double)data["currentMovementPoints"];
+
+                    //time
+                    (character as EnnemyManager).SetTime((int)(double)data["timeInTurn"], (int)(double)data["actualTimeInTurn"]);
                 }
                      
             }
@@ -299,23 +318,24 @@ public class NetworkClient : MonoBehaviour
         });
 
 
-        socketManagerRef.Socket.On("UpdateTime", (socket, packet, args) => {
-            var data = args[0] as Dictionary<string, object>;
-            var character = m_serverObjects[data["id"] as string].GetComponent<Characters>();
-            if(character.m_character == Characters.Character.PLAYER)
-            {
-                if ((character as PlayerManager) != null)
-                    (character as PlayerManager).SetTime((int)(double)data["timeEachTurn"], (int)(double)data["currentTime"]);
-            } else
-            {
-                if ((character as EnnemyManager) != null)
-                    (character as EnnemyManager).SetTime((int)(double)data["timeEachTurn"], (int)(double)data["currentTime"]);
-            }
-        });
+        //socketManagerRef.Socket.On("UpdateTime", (socket, packet, args) => {
+        //    var data = args[0] as Dictionary<string, object>;
+        //    var character = m_serverObjects[data["id"] as string].GetComponent<Characters>();
+        //    if(character.m_character == Characters.Character.PLAYER)
+        //    {
+        //        if ((character as PlayerManager) != null)
+        //            (character as PlayerManager).SetTime((int)(double)data["timeEachTurn"], (int)(double)data["currentTime"]);
+        //    } else
+        //    {
+        //        if ((character as EnnemyManager) != null)
+        //            (character as EnnemyManager).SetTime((int)(double)data["timeEachTurn"], (int)(double)data["currentTime"]);
+        //    }
+        //});
 
         socketManagerRef.Socket.On("EndFight", (socket, packet, args) =>
         {
             Debug.Log("End battle");
+            Debug.Log(packet);
             var data = args[0] as Dictionary<string, object>;
             var playerPositionMain = data["positionArrayMain"] as Dictionary<string, object>;
             string id = data["monsterGroupID"] as string;
@@ -323,7 +343,7 @@ public class NetworkClient : MonoBehaviour
             m_serverObjects.Remove(id);
             DestroyImmediate(tempObject.gameObject);
 
-
+            BattleManager.Instance.SwitchToMain(new Vector2((float)(double)playerPositionMain["x"], (float)(double)playerPositionMain["y"]));
 
         });
 

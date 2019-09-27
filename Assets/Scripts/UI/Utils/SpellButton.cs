@@ -14,6 +14,8 @@ public class SpellButton : MonoBehaviour
     public Button m_button { get; private set; }
     public Image m_image { get; private set; }
 
+    public ImageUpdate m_imageCoolDown { get; private set; }
+
     public void Awake()
     {
         m_button = GetComponent<Button>();
@@ -22,6 +24,7 @@ public class SpellButton : MonoBehaviour
             m_actionOnClick(m_spellID);
         });
         m_image = GetComponent<Image>();
+        m_imageCoolDown = GetComponentInChildren<ImageUpdate>();
     }
 
     public void SetOnClick(OnClick method, string id)

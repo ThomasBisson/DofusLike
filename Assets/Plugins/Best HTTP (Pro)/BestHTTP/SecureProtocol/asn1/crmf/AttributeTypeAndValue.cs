@@ -30,7 +30,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Crmf
         }
 
         public AttributeTypeAndValue(
-            String oid,
+            string oid,
             Asn1Encodable value)
             : this(new DerObjectIdentifier(oid), value)
         {

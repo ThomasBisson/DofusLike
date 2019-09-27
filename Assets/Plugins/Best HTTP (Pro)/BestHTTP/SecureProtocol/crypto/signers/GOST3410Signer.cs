@@ -5,6 +5,7 @@ using System;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Parameters;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Math;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Security;
+using BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities;
 
 namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Signers
 {
@@ -69,12 +70,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Signers
         public virtual BigInteger[] GenerateSignature(
 			byte[] message)
 		{
-			byte[] mRev = new byte[message.Length]; // conversion is little-endian
-			for (int i = 0; i != mRev.Length; i++)
-			{
-				mRev[i] = message[mRev.Length - 1 - i];
-			}
-
+            byte[] mRev = Arrays.Reverse(message); // conversion is little-endian
 			BigInteger m = new BigInteger(1, mRev);
 			Gost3410Parameters parameters = key.Parameters;
 			BigInteger k;
@@ -104,13 +100,8 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Signers
 			BigInteger	r,
 			BigInteger	s)
 		{
-			byte[] mRev = new byte[message.Length]; // conversion is little-endian
-			for (int i = 0; i != mRev.Length; i++)
-			{
-				mRev[i] = message[mRev.Length - 1 - i];
-			}
-
-			BigInteger m = new BigInteger(1, mRev);
+            byte[] mRev = Arrays.Reverse(message); // conversion is little-endian
+            BigInteger m = new BigInteger(1, mRev);
 			Gost3410Parameters parameters = key.Parameters;
 
 			if (r.SignValue < 0 || parameters.Q.CompareTo(r) <= 0)

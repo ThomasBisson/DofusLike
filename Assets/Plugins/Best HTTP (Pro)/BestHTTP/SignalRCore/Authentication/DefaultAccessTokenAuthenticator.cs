@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !BESTHTTP_DISABLE_SIGNALR_CORE && !BESTHTTP_DISABLE_WEBSOCKET
+using System;
 
 namespace BestHTTP.SignalRCore.Authentication
 {
@@ -57,3 +58,4 @@ namespace BestHTTP.SignalRCore.Authentication
         }
     }
 }
+#endif

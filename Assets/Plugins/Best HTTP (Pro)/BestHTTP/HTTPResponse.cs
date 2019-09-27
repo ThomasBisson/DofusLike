@@ -20,6 +20,8 @@ namespace BestHTTP
     #if !BESTHTTP_DISABLE_COOKIES
         using BestHTTP.Cookies;
     #endif
+    
+    using System.Threading;
 
     public interface IProtocol
     {
@@ -172,7 +174,7 @@ namespace BestHTTP
         protected Stream Stream;
 
         protected List<byte[]> streamedFragments;
-        protected object SyncRoot = new object();
+        private ReaderWriterLockSlim rwLock;
 
         protected byte[] fragmentBuffer;
         protected int fragmentBufferDataLength;
@@ -188,6 +190,9 @@ namespace BestHTTP
             this.baseRequest = request;
             this.Stream = /*new ReadOnlyBufferedStream*/(stream);
             this.IsStreamed = isStreamed;
+            if (this.IsStreamed)
+                this.rwLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+
 #if !BESTHTTP_DISABLE_CACHING
             this.IsFromCache = isFromCache;
             this.IsCacheOnly = request.CacheOnly;
@@ -350,7 +355,7 @@ namespace BestHTTP
             }
         }
 
-        protected void AddHeader(string name, string value)
+        public void AddHeader(string name, string value)
         {
             name = name.ToLower();
 
@@ -754,8 +759,11 @@ namespace BestHTTP
 
                     do
                     {
-                        int readbuffer = (int)Math.Min(2147483646, (uint)contentLength);
-                        int bytes = stream.Read(buffer, readBytes, Math.Min(readbuffer, buffer.Length - readBytes));
+                        // tryToReadCount contain how much bytes we want to read in once. We try to read the buffer fully in once, 
+                        //  but with a limit of the remaining contentLength.
+                        int tryToReadCount = (int)Math.Min(Math.Min(int.MaxValue, contentLength), buffer.Length - readBytes);
+						
+                        int bytes = stream.Read(buffer, readBytes, tryToReadCount);
 
                         if (bytes <= 0)
                             throw ExceptionHelper.ServerClosedTCPStream();
@@ -1115,7 +1123,8 @@ namespace BestHTTP
 
         protected void AddStreamedFragment(byte[] buffer)
         {
-            lock (SyncRoot)
+            rwLock.EnterWriteLock();
+            try
             {
 #if !BESTHTTP_DISABLE_CACHING
                 if (!IsCacheOnly)
@@ -1138,6 +1147,10 @@ namespace BestHTTP
                 }
 #endif
             }
+            finally
+            {
+                rwLock.ExitWriteLock();
+            }
         }
 
         private volatile System.Threading.AutoResetEvent fragmentWaitEvent;
@@ -1149,7 +1162,7 @@ namespace BestHTTP
             void WaitWhileFragmentQueueIsFull()
         {
 #if !UNITY_WEBGL || UNITY_EDITOR
-            while (baseRequest.UseStreaming && FragmentQueueIsFull())
+            while (this.baseRequest.State == HTTPRequestStates.Processing && baseRequest.UseStreaming && FragmentQueueIsFull())
             {
                 VerboseLogging("WaitWhileFragmentQueueIsFull");
                 
@@ -1164,13 +1177,18 @@ namespace BestHTTP
 
         bool FragmentQueueIsFull()
         {
-            lock (SyncRoot)
+            rwLock.EnterReadLock();
+            try
             {
                 bool result = streamedFragments != null && streamedFragments.Count >= baseRequest.MaxFragmentQueueLength;
                 if (result && HTTPManager.Logger.Level == Logger.Loglevels.All)
                     VerboseLogging(string.Format("HasFragmentsInQueue - {0} / {1}", streamedFragments.Count, baseRequest.MaxFragmentQueueLength));
 
                 return result;
+            }
+            finally
+            {
+                rwLock.ExitReadLock();
             }
         }
 
@@ -1181,7 +1199,8 @@ namespace BestHTTP
         /// <returns></returns>
         public List<byte[]> GetStreamedFragments()
         {
-            lock (SyncRoot)
+            rwLock.EnterWriteLock();
+            try
             {
                 if (streamedFragments == null || streamedFragments.Count == 0)
                 {
@@ -1201,12 +1220,23 @@ namespace BestHTTP
 
                 return result;
             }
+            finally
+            {
+                rwLock.ExitWriteLock();
+            }
         }
 
         internal bool HasStreamedFragments()
         {
-            lock (SyncRoot)
+            rwLock.EnterReadLock();
+            try
+            {
                 return streamedFragments != null && streamedFragments.Count >= baseRequest.MaxFragmentQueueLength;
+            }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
         }
 
         internal void FinishStreaming()
@@ -1244,6 +1274,7 @@ namespace BestHTTP
                 cacheStream = null;
             }
 #endif
+
             GC.SuppressFinalize(this);
         }
     }

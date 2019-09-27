@@ -265,6 +265,16 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Cms
 			recipientInfoGenerators.Add(karig);
 		}
 
+        /// <summary>
+        /// Add a generator to produce the recipient info required.
+        /// </summary>
+        /// <param name="recipientInfoGenerator">a generator of a recipient info object.</param>
+	    public void AddRecipientInfoGenerator(RecipientInfoGenerator recipientInfoGenerator)
+	    {
+	        recipientInfoGenerators.Add(recipientInfoGenerator);
+	    }
+
+
         protected internal virtual AlgorithmIdentifier GetAlgorithmIdentifier(
 			string					encryptionOid,
 			KeyParameter			encKey,

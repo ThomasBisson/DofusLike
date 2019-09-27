@@ -17,4 +17,5 @@ public class Spell
     public string animationKind;
 
     public Sprite icon;
+    public int m_turnCooling;
 }

@@ -69,15 +69,18 @@ namespace BestHTTP.Caching
         private static bool IsSupportCheckDone;
 
         private static Dictionary<Uri, HTTPCacheFileInfo> library;
-        private static Dictionary<Uri, HTTPCacheFileInfo> Library { get { LoadLibrary(); return library; } }
+
+        private static ReaderWriterLockSlim rwLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
 
         private static Dictionary<UInt64, HTTPCacheFileInfo> UsedIndexes = new Dictionary<ulong, HTTPCacheFileInfo>();
 
         internal static string CacheFolder { get; private set; }
         private static string LibraryPath { get; set; }
 
-        private static bool InClearThread;
-        private static bool InMaintainenceThread;
+        private volatile static bool InClearThread;
+        private volatile static bool InMaintainenceThread;
+
+        public static bool IsDoingMaintainence { get { return InClearThread || InMaintainenceThread; } }
 
         /// <summary>
         /// Stores the index of the next stored entity. The entity's file name is generated from this index.
@@ -133,17 +136,14 @@ namespace BestHTTP.Caching
 
         internal static UInt64 GetNameIdx()
         {
-            lock(Library)
+            UInt64 result = NextNameIDX;
+
+            do
             {
-                UInt64 result = NextNameIDX;
+                NextNameIDX = ++NextNameIDX % UInt64.MaxValue;
+            } while (UsedIndexes.ContainsKey(NextNameIDX));
 
-                do
-                {
-                    NextNameIDX = ++NextNameIDX % UInt64.MaxValue;
-                } while (UsedIndexes.ContainsKey(NextNameIDX));
-
-                return result;
-            }
+            return result;
         }
 
         internal static bool HasEntity(Uri uri)
@@ -151,8 +151,17 @@ namespace BestHTTP.Caching
             if (!IsSupported)
                 return false;
 
-            lock (Library)
-                return Library.ContainsKey(uri);
+            CheckSetup();
+
+            rwLock.EnterReadLock();
+            try
+            {
+                return library.ContainsKey(uri);
+            }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
         }
 
         public static bool DeleteEntity(Uri uri, bool removeFromLibrary = true)
@@ -160,40 +169,45 @@ namespace BestHTTP.Caching
             if (!IsSupported)
                 return false;
 
-            object uriLocker = HTTPCacheFileLock.Acquire(uri);
+            // 2019.05.10: Removed all locking except the one on the library.
 
-            // Just use lock now: http://forum.unity3d.com/threads/4-6-ios-64-bit-beta.290551/page-6#post-1937033
+            CheckSetup();
 
-            // To avoid a dead-lock we try acquire the lock on this uri only for a little time.
-            // If we can't acquire it, its better to just return without risking a deadlock.
-            //if (Monitor.TryEnter(uriLocker, TimeSpan.FromSeconds(0.5f)))
-            lock(uriLocker)
+            rwLock.EnterUpgradeableReadLock();
+            try
             {
+                DeleteEntityImpl(uri, removeFromLibrary, true);
+
+                return true;
+            }
+            finally
+            {
+                rwLock.ExitUpgradeableReadLock();
+            }
+        }
+
+        private static void DeleteEntityImpl(Uri uri, bool removeFromLibrary = true, bool useLocking = false)
+        {
+            HTTPCacheFileInfo info;
+            bool inStats = library.TryGetValue(uri, out info);
+            if (inStats)
+                info.Delete();
+
+            if (inStats && removeFromLibrary)
+            {
+                if (useLocking)
+                    rwLock.EnterWriteLock();
                 try
                 {
-                    lock (Library)
-                    {
-                        HTTPCacheFileInfo info;
-                        bool inStats = Library.TryGetValue(uri, out info);
-                        if (inStats)
-                            info.Delete();
-
-                        if (inStats && removeFromLibrary)
-                        {
-                            Library.Remove(uri);
-                            UsedIndexes.Remove(info.MappedNameIDX);
-                        }
-
-                        return true;
-                    }
+                    library.Remove(uri);
+                    UsedIndexes.Remove(info.MappedNameIDX);
                 }
                 finally
                 {
-                    //Monitor.Exit(uriLocker);
+                    if (useLocking)
+                        rwLock.ExitWriteLock();
                 }
             }
-
-            //return false;
         }
 
         internal static bool IsCachedEntityExpiresInTheFuture(HTTPRequest request)
@@ -201,12 +215,21 @@ namespace BestHTTP.Caching
             if (!IsSupported)
                 return false;
 
-            HTTPCacheFileInfo info;
-            lock (Library)
-                if (Library.TryGetValue(request.CurrentUri, out info))
-                    return info.WillExpireInTheFuture();
+            CheckSetup();
 
-            return false;
+            HTTPCacheFileInfo info = null;
+            rwLock.EnterReadLock();
+            try
+            {
+                if (!library.TryGetValue(request.CurrentUri, out info))
+                    return false;
+            }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
+
+            return info.WillExpireInTheFuture();
         }
 
         /// <summary>
@@ -218,13 +241,24 @@ namespace BestHTTP.Caching
             if (!IsSupported)
                 return;
 
+            CheckSetup();
+
             request.RemoveHeader("If-None-Match");
             request.RemoveHeader("If-Modified-Since");
 
-            HTTPCacheFileInfo info;
-            lock (Library)
-                if (Library.TryGetValue(request.CurrentUri, out info))
-                    info.SetUpRevalidationHeaders(request);
+            HTTPCacheFileInfo info = null;
+            rwLock.EnterReadLock();
+            try
+            {
+                if (!library.TryGetValue(request.CurrentUri, out info))
+                    return;
+            }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
+
+            info.SetUpRevalidationHeaders(request);
         }
 
         #endregion
@@ -235,9 +269,21 @@ namespace BestHTTP.Caching
         {
             if (!IsSupported)
                 return null;
+
+            CheckSetup();
+
             HTTPCacheFileInfo info = null;
-            lock (Library)
-                Library.TryGetValue(uri, out info);
+
+            rwLock.EnterReadLock();
+            try
+            {
+                library.TryGetValue(uri, out info);
+            }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
+
             return info;
         }
 
@@ -246,12 +292,21 @@ namespace BestHTTP.Caching
             if (!IsSupported)
                 return null;
 
-            HTTPCacheFileInfo info;
-            lock (Library)
-                if (Library.TryGetValue(request.CurrentUri, out info))
-                    return info.ReadResponseTo(request);
+            CheckSetup();
 
-            return null;
+            HTTPCacheFileInfo info = null;
+            rwLock.EnterReadLock();
+            try
+            {
+                if (!library.TryGetValue(request.CurrentUri, out info))
+                    return null;
+
+                return info.ReadResponseTo(request);
+            }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
         }
 
         #endregion
@@ -285,20 +340,39 @@ namespace BestHTTP.Caching
             var cacheControls = response.GetHeaderValues("cache-control");
             if (cacheControls != null)
             {
-                if (cacheControls.Exists(headerValue => {
-                                                            string value = headerValue.ToLower();
-                                                            return value.Contains("no-store") || value.Contains("no-cache");
-                                                        }))
+                if (cacheControls.Exists(headerValue =>
+                {
+                    string value = headerValue.ToLower();
+                    if (value.StartsWith("max-age"))
+                    {
+                        string[] kvp = headerValue.FindOption("max-age");
+                        if (kvp != null)
+                        {
+                            // Some cache proxies will return float values
+                            double maxAge;
+                            if (double.TryParse(kvp[1], out maxAge))
+                            {
+                                // A negative max-age value is a no cache
+                                if (maxAge <= 0)
+                                    return false;
+                            }
+                        }
+
+                    }
+
+                    return value.Contains("no-store") || value.Contains("no-cache");
+                }))
                     return false;
             }
 
             var pragmas = response.GetHeaderValues("pragma");
             if (pragmas != null)
             {
-                if (pragmas.Exists(headerValue => {
-                                                      string value = headerValue.ToLower();
-                                                      return value.Contains("no-store") || value.Contains("no-cache");
-                                                  }))
+                if (pragmas.Exists(headerValue =>
+                {
+                    string value = headerValue.ToLower();
+                    return value.Contains("no-store") || value.Contains("no-cache");
+                }))
                     return false;
             }
 
@@ -307,7 +381,18 @@ namespace BestHTTP.Caching
             if (byteRanges != null)
                 return false;
 
-            return true;
+            var etag = response.GetFirstHeaderValue("ETag");
+            if (!string.IsNullOrEmpty(etag))
+                return true;
+
+            var expires = response.GetFirstHeaderValue("Expires").ToDateTime(DateTime.FromBinary(0));
+            if (expires >= DateTime.UtcNow)
+                return true;
+
+            if (response.GetFirstHeaderValue("Last-Modified") != null)
+                return true;
+
+            return false;
         }
 
         internal static HTTPCacheFileInfo Store(Uri uri, HTTPMethods method, HTTPResponse response)
@@ -318,13 +403,16 @@ namespace BestHTTP.Caching
             if (!IsSupported)
                 return null;
 
+            CheckSetup();
+
             HTTPCacheFileInfo info = null;
 
-            lock (Library)
+            rwLock.EnterWriteLock();
+            try
             {
-                if (!Library.TryGetValue(uri, out info))
+                if (!library.TryGetValue(uri, out info))
                 {
-                    Library.Add(uri, info = new HTTPCacheFileInfo(uri));
+                    library.Add(uri, info = new HTTPCacheFileInfo(uri));
                     UsedIndexes.Add(info.MappedNameIDX, info);
                 }
 
@@ -337,10 +425,14 @@ namespace BestHTTP.Caching
                 catch
                 {
                     // If something happens while we write out the response, than we will delete it because it might be in an invalid state.
-                    DeleteEntity(uri);
+                    DeleteEntityImpl(uri);
 
                     throw;
                 }
+            }
+            finally
+            {
+                rwLock.ExitWriteLock();
             }
 
             return info;
@@ -351,27 +443,34 @@ namespace BestHTTP.Caching
             if (!IsSupported)
                 return null;
 
+            CheckSetup();
+
             HTTPCacheFileInfo info;
 
-            lock (Library)
+            rwLock.EnterWriteLock();
+            try
             {
-                if (!Library.TryGetValue(uri, out info))
+                if (!library.TryGetValue(uri, out info))
                 {
-                    Library.Add(uri, info = new HTTPCacheFileInfo(uri));
+                    library.Add(uri, info = new HTTPCacheFileInfo(uri));
                     UsedIndexes.Add(info.MappedNameIDX, info);
                 }
+            }
+            finally
+            {
+                rwLock.ExitWriteLock();
+            }
 
-                try
-                {
-                    return info.GetSaveStream(response);
-                }
-                catch
-                {
-                    // If something happens while we write out the response, than we will delete it because it might be in an invalid state.
-                    DeleteEntity(uri);
+            try
+            {
+                return info.GetSaveStream(response);
+            }
+            catch
+            {
+                // If something happens while we write out the response, than we will delete it because it might be in an invalid state.
+                DeleteEntityImpl(uri, true, true);
 
-                    throw;
-                }
+                throw;
             }
         }
 
@@ -394,21 +493,17 @@ namespace BestHTTP.Caching
 
             SetupCacheFolder();
 
-    #if !NETFX_CORE
-            ThreadPool.QueueUserWorkItem(new WaitCallback((param) => ClearImpl(param)));
-            //new Thread(ClearImpl).Start();
-#else
-#pragma warning disable 4014
-            Windows.System.Threading.ThreadPool.RunAsync(ClearImpl);
-#pragma warning restore 4014
-#endif
+            PlatformSupport.Threading.ThreadedRunner.RunShortLiving(ClearImpl);
         }
 
-        private static void ClearImpl(object param)
+        private static void ClearImpl()
         {
             if (!IsSupported)
                 return;
 
+            CheckSetup();
+
+            rwLock.EnterWriteLock();
             try
             {
                 // GetFiles will return a string array that contains the files in the folder with the full path
@@ -432,8 +527,11 @@ namespace BestHTTP.Caching
                 library.Clear();
                 NextNameIDX = 0x0001;
 
-                SaveLibrary();
                 InClearThread = false;
+
+                rwLock.ExitWriteLock();
+
+                SaveLibrary();
             }
         }
 
@@ -456,83 +554,75 @@ namespace BestHTTP.Caching
 
             SetupCacheFolder();
 
-#if !NETFX_CORE
-            ThreadPool.QueueUserWorkItem(new WaitCallback((param) =>
-            //new Thread((param) =>
-#else
-#pragma warning disable 4014
-            Windows.System.Threading.ThreadPool.RunAsync((param) =>
-#pragma warning restore 4014
-#endif
-            {
-                try
-                    {
-                        lock (Library)
-                        {
-                            // Delete cache entries older than the given time.
-                            DateTime deleteOlderAccessed = DateTime.UtcNow - maintananceParam.DeleteOlder;
-                            List<HTTPCacheFileInfo> removedEntities = new List<HTTPCacheFileInfo>();
-                            foreach (var kvp in Library)
-                                if (kvp.Value.LastAccess < deleteOlderAccessed)
-                                {
-                                    if (DeleteEntity(kvp.Key, false))
-                                        removedEntities.Add(kvp.Value);
-                                }
-
-                            for (int i = 0; i < removedEntities.Count; ++i)
-                            {
-                                Library.Remove(removedEntities[i].Uri);
-                                UsedIndexes.Remove(removedEntities[i].MappedNameIDX);
-                            }
-                            removedEntities.Clear();
-
-                            ulong cacheSize = GetCacheSize();
-
-                            // This step will delete all entries starting with the oldest LastAccess property while the cache size greater then the MaxCacheSize in the given param.
-                            if (cacheSize > maintananceParam.MaxCacheSize)
-                            {
-                                List<HTTPCacheFileInfo> fileInfos = new List<HTTPCacheFileInfo>(library.Count);
-
-                                foreach(var kvp in library)
-                                    fileInfos.Add(kvp.Value);
-
-                                fileInfos.Sort();
-
-                                int idx = 0;
-                                while (cacheSize >= maintananceParam.MaxCacheSize && idx < fileInfos.Count)
-                                {
-                                    try
-                                    {
-                                        var fi = fileInfos[idx];
-                                        ulong length = (ulong)fi.BodyLength;
-
-                                        DeleteEntity(fi.Uri);
-
-                                        cacheSize -= length;
-                                    }
-                                    catch
-                                    {}
-                                    finally
-                                    {
-                                        ++idx;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    finally
-                    {
-                        SaveLibrary();
-                        InMaintainenceThread = false;
-                    }
-                }
-    #if !NETFX_CORE
-                ));
-    #else
-                );
-    #endif
+            PlatformSupport.Threading.ThreadedRunner.RunShortLiving(MaintananceImpl, maintananceParam);
         }
 
+        private static void MaintananceImpl(HTTPCacheMaintananceParams maintananceParam)
+        {
+            CheckSetup();
+
+            rwLock.EnterWriteLock();
+            try
+            {
+                // Delete cache entries older than the given time.
+                DateTime deleteOlderAccessed = DateTime.UtcNow - maintananceParam.DeleteOlder;
+                List<HTTPCacheFileInfo> removedEntities = new List<HTTPCacheFileInfo>();
+                foreach (var kvp in library)
+                    if (kvp.Value.LastAccess < deleteOlderAccessed)
+                    {
+                        DeleteEntityImpl(kvp.Key, false, false);
+                        removedEntities.Add(kvp.Value);
+                    }
+
+                for (int i = 0; i < removedEntities.Count; ++i)
+                {
+                    library.Remove(removedEntities[i].Uri);
+                    UsedIndexes.Remove(removedEntities[i].MappedNameIDX);
+                }
+                removedEntities.Clear();
+
+                ulong cacheSize = GetCacheSizeImpl();
+
+                // This step will delete all entries starting with the oldest LastAccess property while the cache size greater then the MaxCacheSize in the given param.
+                if (cacheSize > maintananceParam.MaxCacheSize)
+                {
+                    List<HTTPCacheFileInfo> fileInfos = new List<HTTPCacheFileInfo>(library.Count);
+
+                    foreach (var kvp in library)
+                        fileInfos.Add(kvp.Value);
+
+                    fileInfos.Sort();
+
+                    int idx = 0;
+                    while (cacheSize >= maintananceParam.MaxCacheSize && idx < fileInfos.Count)
+                    {
+                        try
+                        {
+                            var fi = fileInfos[idx];
+                            ulong length = (ulong)fi.BodyLength;
+
+                            DeleteEntityImpl(fi.Uri);
+
+                            cacheSize -= length;
+                        }
+                        catch
+                        { }
+                        finally
+                        {
+                            ++idx;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                InMaintainenceThread = false;
+                rwLock.ExitWriteLock();
+
+                SaveLibrary();
+            }
+        }
+        
         public static int GetCacheEntityCount()
         {
             if (!HTTPCacheService.IsSupported)
@@ -540,23 +630,43 @@ namespace BestHTTP.Caching
 
             CheckSetup();
 
-            lock(Library)
-                return Library.Count;
+            rwLock.EnterReadLock();
+            try
+            {
+                return library.Count;
+            }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
         }
 
         public static ulong GetCacheSize()
         {
-            ulong size = 0;
-
             if (!IsSupported)
-                return size;
+                return 0;
 
             CheckSetup();
 
-            lock (Library)
-                foreach (var kvp in Library)
-                    if (kvp.Value.BodyLength > 0)
-                        size += (ulong)kvp.Value.BodyLength;
+            rwLock.EnterReadLock();
+            try
+            {
+                return GetCacheSizeImpl();
+            }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
+        }
+
+        private static ulong GetCacheSizeImpl()
+        {
+            ulong size = 0;
+
+            foreach (var kvp in library)
+                if (kvp.Value.BodyLength > 0)
+                    size += (ulong)kvp.Value.BodyLength;
+
             return size;
         }
 
@@ -573,53 +683,49 @@ namespace BestHTTP.Caching
             if (!IsSupported)
                 return;
 
+            int version = 1;
+
+            rwLock.EnterWriteLock();
+
             library = new Dictionary<Uri, HTTPCacheFileInfo>(new UriComparer());
-
-            if (!HTTPManager.IOService.FileExists(LibraryPath))
-            {
-                DeleteUnusedFiles();
-                return;
-            }
-
             try
             {
-                int version;
-
-                lock (library)
+                using (var fs = HTTPManager.IOService.CreateFileStream(LibraryPath, FileStreamModes.Open))
+                using (var br = new System.IO.BinaryReader(fs))
                 {
-                    using (var fs = HTTPManager.IOService.CreateFileStream(LibraryPath, FileStreamModes.Open))
-                    using (var br = new System.IO.BinaryReader(fs))
+                    version = br.ReadInt32();
+
+                    if (version > 1)
+                        NextNameIDX = br.ReadUInt64();
+
+                    int statCount = br.ReadInt32();
+
+                    for (int i = 0; i < statCount; ++i)
                     {
-                        version = br.ReadInt32();
+                        Uri uri = new Uri(br.ReadString());
 
-                        if (version > 1)
-                            NextNameIDX = br.ReadUInt64();
-
-                        int statCount = br.ReadInt32();
-
-                        for (int i = 0; i < statCount; ++i)
+                        var entity = new HTTPCacheFileInfo(uri, br, version);
+                        if (entity.IsExists())
                         {
-                            Uri uri = new Uri(br.ReadString());
+                            library.Add(uri, entity);
 
-                            var entity = new HTTPCacheFileInfo(uri, br, version);
-                            if (entity.IsExists())
-                            {
-                                library.Add(uri, entity);
-
-                                if (version > 1)
-                                    UsedIndexes.Add(entity.MappedNameIDX, entity);
-                            }
+                            if (version > 1)
+                                UsedIndexes.Add(entity.MappedNameIDX, entity);
                         }
                     }
                 }
-
-                if (version == 1)
-                    BeginClear();
-                else
-                    DeleteUnusedFiles();
             }
             catch
-            {}
+            { }
+            finally
+            {
+                rwLock.ExitWriteLock();
+            }
+
+            if (version == 1)
+                BeginClear();
+            else
+                DeleteUnusedFiles();
         }
 
         internal static void SaveLibrary()
@@ -630,28 +736,30 @@ namespace BestHTTP.Caching
             if (!IsSupported)
                 return;
 
+            rwLock.EnterReadLock();
             try
             {
-                lock (Library)
+                using (var fs = HTTPManager.IOService.CreateFileStream(LibraryPath, FileStreamModes.Create))
+                using (var bw = new System.IO.BinaryWriter(fs))
                 {
-                    using (var fs = HTTPManager.IOService.CreateFileStream(LibraryPath, FileStreamModes.Create))
-                    using (var bw = new System.IO.BinaryWriter(fs))
+                    bw.Write(LibraryVersion);
+                    bw.Write(NextNameIDX);
+
+                    bw.Write(library.Count);
+                    foreach (var kvp in library)
                     {
-                        bw.Write(LibraryVersion);
-                        bw.Write(NextNameIDX);
+                        bw.Write(kvp.Key.ToString());
 
-                        bw.Write(Library.Count);
-                        foreach (var kvp in Library)
-                        {
-                            bw.Write(kvp.Key.ToString());
-
-                            kvp.Value.SaveTo(bw);
-                        }
+                        kvp.Value.SaveTo(bw);
                     }
                 }
             }
             catch
-            {}
+            { }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
         }
 
 
@@ -660,16 +768,31 @@ namespace BestHTTP.Caching
             if (!IsSupported)
                 return;
 
-            lock (Library)
+            CheckSetup();
+
+            rwLock.EnterUpgradeableReadLock();
+            try
             {
                 HTTPCacheFileInfo fileInfo;
-                if (Library.TryGetValue(uri, out fileInfo))
+                if (library.TryGetValue(uri, out fileInfo))
                     fileInfo.BodyLength = bodyLength;
                 else
                 {
-                    Library.Add(uri, fileInfo = new HTTPCacheFileInfo(uri, DateTime.UtcNow, bodyLength));
-                    UsedIndexes.Add(fileInfo.MappedNameIDX, fileInfo);
+                    rwLock.EnterWriteLock();
+                    try
+                    {
+                        library.Add(uri, fileInfo = new HTTPCacheFileInfo(uri, DateTime.UtcNow, bodyLength));
+                        UsedIndexes.Add(fileInfo.MappedNameIDX, fileInfo);
+                    }
+                    finally
+                    {
+                        rwLock.ExitWriteLock();
+                    }
                 }
+            }
+            finally
+            {
+                rwLock.ExitUpgradeableReadLock();
             }
         }
 
@@ -696,8 +819,17 @@ namespace BestHTTP.Caching
                     UInt64 idx = 0;
                     bool deleteFile = false;
                     if (UInt64.TryParse(filename, System.Globalization.NumberStyles.AllowHexSpecifier, null, out idx))
-                        lock (Library)
+                    {
+                        rwLock.EnterReadLock();
+                        try
+                        {
                             deleteFile = !UsedIndexes.ContainsKey(idx);
+                        }
+                        finally
+                        {
+                            rwLock.ExitReadLock();
+                        }
+                    }
                     else
                         deleteFile = true;
 
@@ -705,7 +837,7 @@ namespace BestHTTP.Caching
                         HTTPManager.IOService.FileDelete(cacheEntries[i]);
                 }
                 catch
-                {}
+                { }
             }
         }
 

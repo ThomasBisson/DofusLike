@@ -22,8 +22,9 @@ public class GameManager : MonoBehaviour
     {
         //Get needed values in data
         var dataPlayer = data[0] as Dictionary<string, object>;
-        var dataCharacteristic = dataPlayer["characteristic"] as Dictionary<string, object>;
-        var spellsAsList = dataCharacteristic["myspells"] as List<object>;
+        var dataCharacteristic = dataPlayer["baseCharacteristic"] as Dictionary<string, object>;
+        //var spellsAsList = dataCharacteristic["myspells"] as List<object>;
+        var spellsAsList = dataPlayer["spells"] as Dictionary<string, object>;
 
 
         //Set the PlayerManagerMain
@@ -36,8 +37,7 @@ public class GameManager : MonoBehaviour
             PlayerManager = player;
         }
         player.m_HUDUIManager = m_HUDUIManager;
-        player.ChangeStrategy(PlayerManager.PossibleStrategy.Main);
-        Camera.main.GetComponent<FollowTarget>().Target = PlayerManager.transform;
+        player.ChangeStrategy(PlayerManager.PlayerStartegy.Main);
 
         //Subscribe to events
         //player.SubscribeToTimeEvents(m_HUDUIManager.SwitchableMana.SwitchableF.TurnFight.)
@@ -89,9 +89,9 @@ public class GameManager : MonoBehaviour
     {
         //Get needed values in data
         var dataPlayer = data[0] as Dictionary<string, object>;
-        var dataCharacteristic = dataPlayer["characteristic"] as Dictionary<string, object>;
-        var spellsAsList = dataCharacteristic["myspells"] as List<object>;
-
+        var dataCharacteristic = dataPlayer["baseCharacteristic"] as Dictionary<string, object>;
+        //var spellsAsList = dataCharacteristic["myspells"] as List<object>;
+        var spellsAsList = dataPlayer["spells"] as Dictionary<string, object>;
 
         //Set the PlayerManagerMain
         var player = ni.GetComponent<OtherPlayerManager>();
@@ -144,7 +144,7 @@ public class GameManager : MonoBehaviour
 
         foreach (var obj in dataEnnemiesAsList) {
             dataEnnemies.Add(obj as Dictionary<string, object>);
-            dataEnnemiesCaracteristic.Add(dataEnnemies[dataEnnemies.Count-1]["characteristic"] as Dictionary<string, object>);
+            dataEnnemiesCaracteristic.Add(dataEnnemies[dataEnnemies.Count-1]["baseCharacteristic"] as Dictionary<string, object>);
         }
 
 
@@ -155,7 +155,7 @@ public class GameManager : MonoBehaviour
 
         //Create each EnnemyManager
         EnnemyManager ennemy;
-        List<object> spellsAsList;
+        Dictionary<string, object> spellsAsList;
         Dictionary<string, object> dataPosFight;
         for (int i = 0; i < dataEnnemies.Count; i++)
         {
@@ -175,12 +175,7 @@ public class GameManager : MonoBehaviour
             ennemy.FindIconInResources();
 
             //Set SpellTree
-            spellsAsList = dataEnnemiesCaracteristic[i]["myspells"] as List<object>;
-            //foreach (var obj in spellsAsList)
-            //{
-            //    string spellJson = JsonConvert.SerializeObject(obj as Dictionary<string, object>, Formatting.None);
-            //    ennemy.SetSpellTree(spellJson);
-            //}
+            spellsAsList = dataEnnemies[i]["spells"] as Dictionary<string, object>;
             ennemy.SetSpellTree(spellsAsList);
             ennemyGroup.AddToEnnemyGroup(ennemy);
             ennemy.gameObject.SetActive(false);

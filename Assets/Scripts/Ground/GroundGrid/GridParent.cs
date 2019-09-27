@@ -75,7 +75,7 @@ public class GridParent : MonoBehaviour
         {
             for (float z = -((m_totalSizeZ / 2)); z < (m_totalSizeZ / 2); z += m_size)
             {
-                var point = GetNearestPointOnGrid(new Vector3(x, 0f, z));
+                var point = GetNearestPointOnGrid(new Vector3(transform.position.x + x, transform.position.y, transform.position.z + z));
                 Gizmos.DrawSphere(point, 0.1f);
             }
 

@@ -84,14 +84,8 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Cmp
 		public override Asn1Object ToAsn1Object()
 		{
 			Asn1EncodableVector v = new Asn1EncodableVector();
-
-			if (caPubs != null)
-			{
-				v.Add(new DerTaggedObject(true, 1, caPubs));
-			}
-
+            v.AddOptionalTagged(true, 1, caPubs);
 			v.Add(response);
-
 			return new DerSequence(v);
 		}
 	}

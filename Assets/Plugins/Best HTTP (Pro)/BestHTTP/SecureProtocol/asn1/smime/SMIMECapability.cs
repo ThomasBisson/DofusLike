@@ -91,13 +91,8 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.Smime
         public override Asn1Object ToAsn1Object()
         {
             Asn1EncodableVector v = new Asn1EncodableVector(capabilityID);
-
-			if (parameters != null)
-            {
-                v.Add(parameters);
-            }
-
-			return new DerSequence(v);
+            v.AddOptional(parameters);
+            return new DerSequence(v);
         }
     }
 }

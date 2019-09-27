@@ -1,8 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace BestHTTP.Extensions
 {
+    public struct PooledBuffer : IDisposable
+    {
+        public byte[] Data;
+        public int Length;
+
+        public void Dispose()
+        {
+            if (this.Data != null)
+                VariableSizedBufferPool.Release(this.Data);
+            this.Data = null;
+        }
+    }
+
     /// <summary>
     /// Private data struct that contains the size <-> byte arrays mapping. 
     /// </summary>
@@ -86,7 +101,7 @@ namespace BestHTTP.Extensions
         public static TimeSpan RunMaintenanceEvery = TimeSpan.FromSeconds(10);
 
         /// <summary>
-        /// Minumum buffer size that the plugin will allocate when the requested size is smaller than this value, and canBeLarger is set to true.
+        /// Minimum buffer size that the plugin will allocate when the requested size is smaller than this value, and canBeLarger is set to true.
         /// </summary>
         public static long MinBufferSize = 256;
 
@@ -96,7 +111,7 @@ namespace BestHTTP.Extensions
         public static long MaxBufferSize = long.MaxValue;
 
         /// <summary>
-        /// Maximum accomulated size of the stored buffers.
+        /// Maximum accumulated size of the stored buffers.
         /// </summary>
         public static long MaxPoolSize = 10 * 1024 * 1024;
 
@@ -115,10 +130,12 @@ namespace BestHTTP.Extensions
         private static DateTime lastMaintenance = DateTime.MinValue;
 
         // Statistics
-        private static volatile int PoolSize = 0;
-        private static volatile uint GetBuffers = 0;
-        private static volatile uint ReleaseBuffers = 0;
+        private static long PoolSize = 0;
+        private static long GetBuffers = 0;
+        private static long ReleaseBuffers = 0;
         private static System.Text.StringBuilder statiscticsBuilder = new System.Text.StringBuilder();
+
+        private static ReaderWriterLockSlim rwLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
 
         static VariableSizedBufferPool()
         {
@@ -142,31 +159,29 @@ namespace BestHTTP.Extensions
             if (size == 0)
                 return VariableSizedBufferPool.NoData;
 
-            lock (FreeBuffers)
+            if (FreeBuffers.Count == 0)
+                return new byte[size];
+
+            BufferDesc bufferDesc = FindFreeBuffer(size, canBeLarger);
+
+            if (bufferDesc.buffer == null)
             {
-                if (FreeBuffers.Count == 0)
-                    return new byte[size];
-
-                BufferDesc bufferDesc = FindFreeBuffer(size, canBeLarger);
-                if (bufferDesc.buffer == null)
+                if (canBeLarger)
                 {
-                    if (canBeLarger)
-                    {
-                        if (size < MinBufferSize)
-                            size = MinBufferSize;
-                        else if (!IsPowerOfTwo(size))
-                            size = NextPowerOf2(size);
-                    }
-
-                    return new byte[size];
+                    if (size < MinBufferSize)
+                        size = MinBufferSize;
+                    else if (!IsPowerOfTwo(size))
+                        size = NextPowerOf2(size);
                 }
-                else
-                    GetBuffers++;
 
-                PoolSize -= bufferDesc.buffer.Length;
-
-                return bufferDesc.buffer;
+                return new byte[size];
             }
+            else
+                Interlocked.Increment(ref GetBuffers);
+
+            Interlocked.Add(ref PoolSize, -bufferDesc.buffer.Length);
+
+            return bufferDesc.buffer;
         }
 
         /// <summary>
@@ -194,7 +209,8 @@ namespace BestHTTP.Extensions
             if (size == 0 || size > MaxBufferSize)
                 return;
 
-            lock (FreeBuffers)
+            rwLock.EnterWriteLock();
+            try
             {
                 if (PoolSize + size > MaxPoolSize)
                     return;
@@ -203,6 +219,10 @@ namespace BestHTTP.Extensions
                 ReleaseBuffers++;
 
                 AddFreeBuffer(buffer);
+            }
+            finally
+            {
+                rwLock.ExitWriteLock();
             }
         }
 
@@ -228,7 +248,8 @@ namespace BestHTTP.Extensions
         /// </summary>
         public static string GetStatistics(bool showEmptyBuffers = true)
         {
-            lock (FreeBuffers)
+            rwLock.EnterReadLock();
+            try
             {
                 statiscticsBuilder.Length = 0;
                 statiscticsBuilder.AppendFormat("Pooled array reused count: {0:N0}\n", GetBuffers);
@@ -247,6 +268,10 @@ namespace BestHTTP.Extensions
 
                 return statiscticsBuilder.ToString();
             }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -254,15 +279,20 @@ namespace BestHTTP.Extensions
         /// </summary>
         public static void Clear()
         {
-            lock (FreeBuffers)
+            rwLock.EnterWriteLock();
+            try
             {
                 FreeBuffers.Clear();
                 PoolSize = 0;
             }
+            finally
+            {
+                rwLock.ExitWriteLock();
+            }
         }
 
         /// <summary>
-        /// Internal function called by the plugin the remove old, non-used buffers.
+        /// Internal function called by the plugin to remove old, non-used buffers.
         /// </summary>
         internal static void Maintain()
         {
@@ -272,10 +302,11 @@ namespace BestHTTP.Extensions
             lastMaintenance = now;
 
             DateTime olderThan = now - RemoveOlderThan;
-            lock (FreeBuffers)
+            rwLock.EnterWriteLock();
+            try
             {
-                if (HTTPManager.Logger.Level == Logger.Loglevels.All)
-                    HTTPManager.Logger.Information("VariableSizedBufferPool", "Before Maintain: " + GetStatistics());
+                //if (HTTPManager.Logger.Level == Logger.Loglevels.All)
+                //    HTTPManager.Logger.Information("VariableSizedBufferPool", "Before Maintain: " + GetStatistics());
 
                 for (int i = 0; i < FreeBuffers.Count; ++i)
                 {
@@ -302,18 +333,28 @@ namespace BestHTTP.Extensions
                         FreeBuffers.RemoveAt(i--);
                 }
 
-                if (HTTPManager.Logger.Level == Logger.Loglevels.All)
-                    HTTPManager.Logger.Information("VariableSizedBufferPool", "After Maintain: " + GetStatistics());
+                //if (HTTPManager.Logger.Level == Logger.Loglevels.All)
+                //    HTTPManager.Logger.Information("VariableSizedBufferPool", "After Maintain: " + GetStatistics());
+            }
+            finally
+            {
+                rwLock.ExitWriteLock();
             }
         }
 
 #region Private helper functions
 
+#if NET_STANDARD_2_0 || NETFX_CORE
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         private static bool IsPowerOfTwo(long x)
         {
             return (x & (x - 1)) == 0;
         }
 
+#if NET_STANDARD_2_0 || NETFX_CORE
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         private static long NextPowerOf2(long x)
         {
             long pow = 1;
@@ -322,31 +363,55 @@ namespace BestHTTP.Extensions
             return pow;
         }
 
+#if NET_STANDARD_2_0 || NETFX_CORE
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         private static BufferDesc FindFreeBuffer(long size, bool canBeLarger)
         {
-            for (int i = 0; i < FreeBuffers.Count; ++i)
+            rwLock.EnterUpgradeableReadLock();
+            try
             {
-                BufferStore store = FreeBuffers[i];
-
-                if (store.buffers.Count > 0 && (store.Size == size || (canBeLarger && store.Size > size)))
+                for (int i = 0; i < FreeBuffers.Count; ++i)
                 {
-                    // Getting the last one has two desired effect:
-                    //  1.) RemoveAt should be quicker as it don't have to move all the remaining entries
-                    //  2.) Old, non-used buffers will age. Getting a buffer and putting it back will not keep buffers fresh.
+                    BufferStore store = FreeBuffers[i];
 
-                    BufferDesc lastFree = store.buffers[store.buffers.Count - 1];
-                    store.buffers.RemoveAt(store.buffers.Count - 1);
+                    if (store.buffers.Count > 0 && (store.Size == size || (canBeLarger && store.Size > size)))
+                    {
+                        // Getting the last one has two desired effect:
+                        //  1.) RemoveAt should be quicker as it don't have to move all the remaining entries
+                        //  2.) Old, non-used buffers will age. Getting a buffer and putting it back will not keep buffers fresh.
 
-                    return lastFree;
+                        BufferDesc lastFree = store.buffers[store.buffers.Count - 1];
+
+                        rwLock.EnterWriteLock();
+                        try
+                        {
+                            store.buffers.RemoveAt(store.buffers.Count - 1);
+                        }
+                        finally
+                        {
+                            rwLock.ExitWriteLock();
+                        }
+
+                        return lastFree;
+                    }
                 }
+            }
+            finally
+            {
+                rwLock.ExitUpgradeableReadLock();
             }
 
             return BufferDesc.Empty;
         }
 
+#if NET_STANDARD_2_0 || NETFX_CORE
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         private static void AddFreeBuffer(byte[] buffer)
         {
             int bufferLength = buffer.Length;
+
             for (int i = 0; i < FreeBuffers.Count; ++i)
             {
                 BufferStore store = FreeBuffers[i];
@@ -374,11 +439,11 @@ namespace BestHTTP.Extensions
                     FreeBuffers.Insert(i, new BufferStore(bufferLength, buffer));
                     return;
                 }
-            }
 
-            // When we reach this point, there's no same sized or larger BufferStore present, so we have to add a new one
-            //  to the endo of our list.
-            FreeBuffers.Add(new BufferStore(bufferLength, buffer));
+                // When we reach this point, there's no same sized or larger BufferStore present, so we have to add a new one
+                //  to the end of our list.
+                FreeBuffers.Add(new BufferStore(bufferLength, buffer));
+            }
         }
 
 #endregion

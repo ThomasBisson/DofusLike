@@ -3,15 +3,19 @@ var server = require('http').Server(app);
 var io = require('socket.io')(server);
 
 
-var Player = require('./Player.js');
-var Monster = require('./Monster.js');
-var MonsterGroup = require('./MonsterGroup.js');
-var MyMongoBDD = require('./MyMongoBDD.js');
-var MyVector2 = require('./MyVector2.js');
+var Player = require('./Characters/Player/Player');
+var Spell = require('./Characters/Spell.js');
+var MonsterGroup = require('./Characters/Ennemy/EnnemyGroup.js');
+var MyMongoBDD = require('./Database/MyMongoBDD.js');
+var MyVector2 = require('./utils/MyVector2.js');
+
+var functions = require('./Functions');
 
 var timeEachTurn = 15;
 
-server.listen(8080, function() {
+server.listen(60000, function () {
+
+    //console.log(functions.testfunction());
 
     console.log("Server is now running...");
 
@@ -32,328 +36,397 @@ server.listen(8080, function() {
         io.on('connection', async function (socket) {
             console.log("Player Connected !");
 
+            socket.emit('open');
+
             var idEnnemyGroupInBattle = '';
 
-            var character = await db.getCharacter('Xuchu');
+            socket.on('Loggin', async function (data) {
 
-            //Register the client
-            var player = new Player('Thomas', character);
-            var thisPlayerID = player.id;
-            
+                let myjson = JSON.parse(data);
 
-            players[thisPlayerID] = player;
-            sockets[thisPlayerID] = socket;
+                console.log('try to loggin ...');
 
-            socket.emit('open', player);
+                let playerInDB = await db.getPlayer(myjson.login, myjson.password);
 
-            //Tell the client his ID and that he can spawn (and where he can)
-            socket.emit('register', { id: thisPlayerID })
+                if (playerInDB == null) {
+                    console.log('Failed to log...');
+                } else {
+                    console.log('Log successfully !');
 
-            //Create a new group of ennemies
-            var monsterGroup = new MonsterGroup();
-            var thisMonsterGroupID = monsterGroup.id;
+                    socket.emit('LoadMainScene');
 
-            await monsterGroup.FillMonster(db, 1);
+                    socket.on('MainSceneLoaded', async function () {
 
-            //Tell the client his data
-            socket.emit('spawnPlayer', player);
+                        console.log('Main scene loaded !');
 
-            //fill ennemy groupe in array
-            monsterGroups[thisMonsterGroupID] = monsterGroup;
+                        let character = await db.getCharacter('Xuchu');
+                        let spells = await db.getSpells(character.spells);
 
-            //Tell the client than an ennemy as spawn
-            socket.emit('spawnEnnemies', monsterGroup);
+                        //Register the client
+                        let player = new Player('Thomas', character, spells);
+                        var thisPlayerID = player.id;
 
-            //Tell the other client that a new play have spawn
-            socket.broadcast.emit('spawnAnotherPlayer', player);
+                        players[thisPlayerID] = player;
+                        sockets[thisPlayerID] = socket;
 
-            //Tell the other client that a new monster has spawn
-            socket.broadcast.emit('spawnEnnemies', monsterGroup);
+                        //Tell the client his ID and that he can spawn (and where he can)
+                        socket.emit('register', { id: thisPlayerID })
 
-            //Tell our player about the other players
-            for (var playerID in players) {
-                if (playerID != thisPlayerID && !players[playerID].isInBattle) {
-                    socket.emit('spawnAnotherPlayer', players[playerID])
-                }
-            }
+                        //Create a new group of ennemies
+                        var monsterGroup = new MonsterGroup();
+                        var thisMonsterGroupID = monsterGroup.id;
 
-            //Tell our player about the other monsters
-            for (var monsterGroupID in monsterGroups) {
-                if (monsterGroupID != thisMonsterGroupID && !monsterGroups[monsterGroupID].isInBattle) {
-                    socket.emit('spawnEnnemies', monsterGroups[monsterGroupID])
-                }
-            }
+                        await monsterGroup.FillMonster(db, 1);
 
-            //Positional Data from client
-            socket.on('updatePosition', function (data) {
+                        //Tell the client his data
+                        socket.emit('spawnPlayer', players[thisPlayerID]);
 
-                var myjson = JSON.parse(data);
+                        //fill ennemy groupe in array
+                        monsterGroups[thisMonsterGroupID] = monsterGroup;
 
-                player.positionInWorld.x = myjson.positionInWorld.x;
-                player.positionInWorld.y = myjson.positionInWorld.y;
-                player.positionInWorld.z = myjson.positionInWorld.z;
+                        //Tell the client than an ennemy as spawn
+                        socket.emit('spawnEnnemies', monsterGroup);
 
-                player.positionArrayMain.x = myjson.positionArrayMain.x;
-                player.positionArrayMain.y = myjson.positionArrayMain.y;
+                        //Tell the other client that a new play have spawn
+                        socket.broadcast.emit('spawnAnotherPlayer', players[thisPlayerID]);
 
-                //player.positionArrayFight.x = myjson.positionArrayFight.x;
-                //player.positionArrayFight.y = myjson.positionArrayFight.y;
+                        //Tell the other client that a new monster has spawn
+                        socket.broadcast.emit('spawnEnnemies', monsterGroup);
 
-                var pos = {
-                    id: playerID,
-                    position: {
-                        x: player.positionInWorld.x,
-                        y: player.positionInWorld.y,
-                        z: player.positionInWorld.x,
-                    }
-                }
-
-                //socket.broadcast.emit('updatePosition', player);
-                socket.broadcast.emit('updatePosition', pos);
-            });
-
-            socket.on('EngageBattle', function (data) {
-                var myjson = JSON.parse(data);
-
-                if ((myjson.id in monsterGroups)) {
-                    if (monsterGroups[myjson.id].isInBattle == false) {
-                        if (monsterGroups[myjson.id].position.Distance(player.positionInWorld) <= 1) {
-                            console.log("Engage battle !");
-                            player.isInBattle = true;
-                            socket.emit('EngageBattle', monsterGroups[myjson.id]);
-                            socket.broadcast.emit('deleteEnnemyGroup', myjson.id);
-                            monsterGroups[myjson.id].isInBattle = true;
-                            idEnnemyGroupInBattle = myjson.id;
-                        } else {
-                            console.log(monsterGroups[myjson.id].position.Distance(player.positionInWorld));
-                        }
-                    }
-                }
-            });
-
-            socket.on('BattleReadyInClient', function () {
-                console.log("id monster : " + idEnnemyGroupInBattle)
-                SendTurnMessageRec(socket, timeEachTurn, player, monsterGroups[idEnnemyGroupInBattle], 0);
-            });
-
-            //When player try to hit a spell on a tile in fight
-            socket.on('TryToHitSpell', async function (data) {
-                var myjson = JSON.parse(data);
-                var spell = await db.getSpell(myjson.spellID);
-
-
-                //check explosive range
-                let explosiveRange = 0;
-                if (spell.hasOwnProperty('explosiveRange')) {
-                    explosiveRange = spell['explosiveRange'];
-                }
-
-                //check shield
-                let shield = 0;
-                if (spell.hasOwnProperty('shield')) {
-                    shield = spell['shield'];
-                }
-
-                //Check damage
-                let damage = 0;
-                if (spell.hasOwnProperty('damage')) {
-                    damage = spell['damage'];
-                }
-
-                //Is range Ok
-                var XY = new MyVector2(myjson.posXY.x, myjson.posXY.y);
-                var dist = player.positionArrayFight.CircleDistance(XY);
-                if (dist <= spell['range']) {
-                    if (player.UseActionPoint(spell['actionPointsConsuption'])) {
-                        //Check monsters
-                        for (const monster of monsterGroups[idEnnemyGroupInBattle].monsters.values()) {
-                            //If spell has hit
-                            if (XY.CircleDistance(monster.positionArrayFight) <= explosiveRange) {
-                                //TODO : See if it's possible to pass the function directly with parameters
-                                monster.TakeDamage(damage, function() {
-                                    CheckIfAllEnnemiesAreDead(monsterGroups[idEnnemyGroupInBattle])
-                                });
-                                monster.GainShieldPoints(shield);
-                                socket.emit('UpdateCharacterStats', monster.GetBaseCaracteristicAsJson());
-                                socket.broadcast.emit('UpdateCharacterStats', monster.GetBaseCaracteristicAsJson());
+                        //Tell our player about the other players
+                        for (var playerID in players) {
+                            if (playerID != thisPlayerID && !players[playerID].isInBattle) {
+                                socket.emit('spawnAnotherPlayer', players[playerID])
                             }
                         }
 
-                        //check players
-                        if (XY.CircleDistance(player.positionArrayFight) <= explosiveRange) {
-                            player.TakeDamage(damage, CheckIfAllPlayersDied(player));
-                            player.GainShieldPoints(shield);
-                        }
-                        //Send message
-                        socket.emit('UpdateCharacterStats', player.GetBaseCaracteristicAsJson());
-                        socket.broadcast.emit('UpdateCharacterStats', player.GetBaseCaracteristicAsJson());
-
-                        let myjsonSellHit = {
-                            spellID: myjson.spellID,
-                            startPosition : {
-                                x : player.positionArrayFight.x,
-                                y : player.positionArrayFight.y
-                            },
-                            endPosition : {
-                                x : XY.x,
-                                y : XY.y
+                        //Tell our player about the other monsters
+                        for (var monsterGroupID in monsterGroups) {
+                            if (monsterGroupID != thisMonsterGroupID && !monsterGroups[monsterGroupID].isInBattle) {
+                                socket.emit('spawnEnnemies', monsterGroups[monsterGroupID])
                             }
                         }
 
-                        socket.emit("SpellHasHit", myjsonSellHit);
-                        socket.broadcast.emit("SpellHasHit", myjsonSellHit);
-                    }
-                }
-            });
+                        //Positional Data from client
+                        socket.on('updatePosition', function (data) {
 
-            socket.on('TryToMove', function (data) {
-                var myjsonreceived = JSON.parse(data);
-                let XY = new MyVector2(myjsonreceived.posInBattle.x, myjsonreceived.posInBattle.y);
-                if (player.UseMovementPoint(player.positionArrayFight.CircleDistance(XY))) {
-                    player.positionArrayFight = XY;
-                    socket.emit('UpdateCharacterStats', player.GetBaseCaracteristicAsJson());
-                    let myjson = {
-                        position: {
-                            x: player.positionArrayFight.x,
-                            y: player.positionArrayFight.y,
+                            var myjson = JSON.parse(data);
+
+                            players[thisPlayerID].positionInWorld.x = myjson.positionInWorld.x;
+                            players[thisPlayerID].positionInWorld.y = myjson.positionInWorld.y;
+                            players[thisPlayerID].positionInWorld.z = myjson.positionInWorld.z;
+
+                            players[thisPlayerID].positionArrayMain.x = myjson.positionArrayMain.x;
+                            players[thisPlayerID].positionArrayMain.y = myjson.positionArrayMain.y;
+
+                            //player.positionArrayFight.x = myjson.positionArrayFight.x;
+                            //player.positionArrayFight.y = myjson.positionArrayFight.y;
+
+                            var pos = {
+                                id: playerID,
+                                position: {
+                                    x: players[thisPlayerID].positionInWorld.x,
+                                    y: players[thisPlayerID].positionInWorld.y,
+                                    z: players[thisPlayerID].positionInWorld.x,
+                                }
+                            }
+
+                            //socket.broadcast.emit('updatePosition', player);
+                            socket.broadcast.emit('updatePosition', pos);
+                        });
+
+                        //When the player engage a battle
+                        socket.on('EngageBattle', function (data) {
+                            var myjson = JSON.parse(data);
+
+                            if ((myjson.id in monsterGroups)) {
+                                if (monsterGroups[myjson.id].isInBattle == false) {
+                                    if (monsterGroups[myjson.id].position.Distance(players[thisPlayerID].positionInWorld) <= 1) {
+                                        console.log("Engage battle !");
+                                        players[thisPlayerID].isInBattle = true;
+                                        socket.emit('EngageBattle', monsterGroups[myjson.id]);
+                                        socket.broadcast.emit('deleteEnnemyGroup', myjson.id);
+
+                                        //TODO : Delete the player in broadcast
+
+                                        monsterGroups[myjson.id].isInBattle = true;
+                                        idEnnemyGroupInBattle = myjson.id;
+                                    } else {
+                                        console.log(monsterGroups[myjson.id].position.Distance(players[thisPlayerID].positionInWorld));
+                                    }
+                                }
+                            }
+                        });
+
+                        //Battle is ready, start the function that handle the gameplay
+                        socket.on('BattleReadyInClient', function () {
+                            console.log("id monster : " + idEnnemyGroupInBattle)
+                            //SendTurnMessageRec(socket, timeEachTurn, players[thisPlayerID], monsterGroups[idEnnemyGroupInBattle], 0);
+                            SendTurnMessageRec(socket, players[thisPlayerID], monsterGroups[idEnnemyGroupInBattle]);
+                        });
+
+                        //When player try to hit a spell on a tile in fight
+                        socket.on('TryToHitSpell', async function (data) {
+                            var myjson = JSON.parse(data);
+                            var spell = await db.getSpell(myjson.spellID);
+
+                            let spellvars = new Spell();
+                            spellvars.FillSpell(spell);
+
+                            //Is range Ok
+                            var XY = new MyVector2(myjson.posXY.x, myjson.posXY.y);
+                            var dist = players[thisPlayerID].positionArrayFight.CircleDistance(XY);
+                            if (dist <= spell['range']) {
+                                if (players[thisPlayerID].UseActionPoint(spell['actionPointsConsuption'])) {
+                                    if (players[thisPlayerID].GainCooldown(spell['_id'])) {
+                                        let allEnnemiesDied = false;
+
+                                        //Check monsters
+                                        monsterGroups[idEnnemyGroupInBattle].monsters.forEach(function (monster) {
+                                            //If spell has hit
+                                            if (XY.CircleDistance(monster.positionArrayFight) <= spellvars.areaRange) {
+                                                //TODO : See if I can't put this line at the end of each turn (think about poison)
+                                                monster.TakeDamage(spellvars.damage, function () {
+                                                    if (CheckIfAllEnnemiesAreDead(monsterGroups[idEnnemyGroupInBattle])) {
+                                                        allEnnemiesDied = true;
+                                                    }
+                                                });
+                                                socket.emit('UpdateCharacterStats', monster);
+                                                socket.broadcast.emit('UpdateCharacterStats', monster);
+                                            }
+                                        });
+
+                                        //check players
+                                        if (XY.CircleDistance(players[thisPlayerID].positionArrayFight) <= spellvars.areaRange) {
+                                            players[thisPlayerID].TakeDamage(spellvars.damage, CheckIfAllPlayersDied(players[thisPlayerID]));
+                                            players[thisPlayerID].GainShieldPoints(spellvars.shield);
+                                        }
+
+                                        //Send message
+                                        socket.emit('UpdateCharacterStats', players[thisPlayerID]);
+                                        socket.broadcast.emit('UpdateCharacterStats', players[thisPlayerID]);
+
+                                        if (!allEnnemiesDied) {
+                                            let myjsonSellHit = {
+                                                spellID: myjson.spellID,
+                                                startPosition: {
+                                                    x: players[thisPlayerID].positionArrayFight.x,
+                                                    y: players[thisPlayerID].positionArrayFight.y
+                                                },
+                                                endPosition: {
+                                                    x: XY.x,
+                                                    y: XY.y
+                                                }
+                                            }
+
+                                            socket.emit("SpellHasHit", myjsonSellHit);
+                                            socket.broadcast.emit("SpellHasHit", myjsonSellHit);
+                                        }
+                                    }
+                                }
+                            }
+                        });
+
+                        //When a player try to use PM to move
+                        socket.on('TryToMove', function (data) {
+                            var myjsonreceived = JSON.parse(data);
+                            let XY = new MyVector2(myjsonreceived.posInBattle.x, myjsonreceived.posInBattle.y);
+                            if (players[thisPlayerID].UseMovementPoint(players[thisPlayerID].positionArrayFight.CircleDistance(XY))) {
+                                players[thisPlayerID].positionArrayFight = XY;
+                                socket.emit('UpdateCharacterStats', players[thisPlayerID]);//.GetBaseCaracteristicAsJson());
+                                socket.broadcast.emit('UpdateCharacterStats', players[thisPlayerID]);
+                                let myjson = {
+                                    position: {
+                                        x: players[thisPlayerID].positionArrayFight.x,
+                                        y: players[thisPlayerID].positionArrayFight.y,
+                                    }
+                                }
+                                socket.emit('NewDestination', myjson);
+                            }
+                        });
+
+                        //When a player want to end his turn
+                        socket.on("EndTurn", function () {
+                            if (idCurrentTurn == thisPlayerID) {
+                                mustEndTurn = true;
+                            }
+                        });
+
+                        socket.on('disconnect', function () {
+                            console.log("Player Disconnected");
+                            stopCombat = true;
+                            socket.broadcast.emit('playerDisconnect', players[thisPlayerID]);
+                            delete players[thisPlayerID];
+                            delete sockets[thisPlayerID];
+                            delete monsterGroups[thisMonsterGroupID];
+
+                        });
+
+                        function CheckIfAllEnnemiesAreDead(monsterGroup) {
+                            let allDead = true;
+                            monsterGroup.monsters.forEach(function (monster) {
+                                if (!monster.IsDead()) {
+                                    allDead = false;
+                                }
+                            });
+                            if (allDead) {
+                                stopCombat = true;
+
+                                //End the fight
+
+                                let endFightData = {
+                                    monsterGroupID: thisMonsterGroupID,
+                                    positionArrayMain: {
+                                        x: players[thisPlayerID].positionArrayMain.x,
+                                        y: players[thisPlayerID].positionArrayMain.y
+                                    }
+                                }
+                                socket.emit('EndFight', endFightData);
+                                delete monsterGroups[thisMonsterGroupID];
+                            }
+                            return allDead;
                         }
-                    }
-                    socket.emit('NewDestination', myjson);
-                }
-            });
 
-            socket.on("EndTurn", function () {
-                if (idCurrentTurn == thisPlayerID) {
-                    mustEndTurn = true;
-                }
-            });
-
-
-            socket.on('disconnect', function () {
-                console.log("Player Disconnected");
-                stopCombat = true;
-                delete players[thisPlayerID];
-                delete sockets[thisPlayerID];
-                delete monsterGroups[thisMonsterGroupID];
-                socket.broadcast.emit('playerDisconnect', player);
-            });
-
-            function CheckIfAllEnnemiesAreDead(monsterGroup) {
-                let allDead = true;
-                for (const monster of monsterGroup.monsters.values()) {
-                    if (!monster.IsDead()) {
-                        allDead = false;
-                    }
-                }
-                if (allDead) {
-                    stopCombat = true;
-
-                    //End the fight
-                    console.log("Monster all dead");
-
-                    let endFightData = {
-                        monsterGroupID: thisMonsterGroupID,
-                        positionArrayMain : {
-                            x : player.positionArrayMain.x,
-                            y : player.positionArrayMain.y
+                        function CheckIfAllPlayersDied(player) {
+                            if (player.IsDead()) {
+                                //End the fight
+                                console.log("Player dead");
+                            }
                         }
-                    }
-                    socket.emit('EndFight', endFightData);
-                    delete monsterGroups[thisMonsterGroupID];
-                }
-            }
 
-            function CheckIfAllPlayersDied(player) {
-                if (player.IsDead()) {
-                    //End the fight
-                    console.log("Player dead");
-                }
-            }
+                        async function SendTurnMessageRec(socket, player, monsterGroup) {//(socket, currentTime, player, monsterGroup, currentTurn) {
 
-            async function SendTurnMessageRec(socket, currentTime, player, monsterGroup, currentTurn) {
-                //refill pa pm at the end of a turn
-                if (currentTime == timeEachTurn) {
-                    let lastCurrentTurn = currentTurn - 1;
-                    if (lastCurrentTurn < 0) {
-                        lastCurrentTurn = monsterGroup.monsters.length;
-                    }
-                    if (lastCurrentTurn == 0) {
-                        player.RefreshActionAndMovementPoint();
-                        socket.emit('UpdateCharacterStats', player.GetBaseCaracteristicAsJson());
-                        socket.broadcast.emit('UpdateCharacterStats', player.GetBaseCaracteristicAsJson());
-                    }
-                    else {
-                        monsterGroup.monsters[lastCurrentTurn - 1].RefreshActionAndMovementPoint();
-                        socket.emit('UpdateCharacterStats', monsterGroup.monsters[lastCurrentTurn - 1].GetBaseCaracteristicAsJson());
-                        socket.broadcast.emit('UpdateCharacterStats', monsterGroup.monsters[lastCurrentTurn - 1].GetBaseCaracteristicAsJson());
-                    }
-                    //3 seconds turn for ennemies
-                    if (currentTurn > 0) {
-                        currentTime = 3;
-                    }
-                }
+                            let everyone = [];
+                            everyone.push(player);
+                            for (let i = 0; i < monsterGroup.monsters.length; i++) {
+                                everyone.push(monsterGroup.monsters[i]);
+                            };
+                            let currentTurn = 0;
+                            idCurrentTurn = everyone[currentTurn].id;
 
-                //Create base json with id and timeEachTurn
-                let mydata = '{'
-                    + '"id" : "';
-                if (currentTurn == 0) {
+                            while (!stopCombat) {
 
-                    mydata += player.id + '",';
-                    idCurrentTurn = player.id;
-                } else {
-                    mydata += monsterGroup.monsters[currentTurn - 1].id + '",';
-                    idCurrentTurn = monsterGroup.monsters[currentTurn - 1].id;
-                }
-                mydata += '"timeEachTurn" : ' + timeEachTurn + ',';
+                                //Refresh time and stats
+                                everyone[currentTurn].RefreshActionAndMovementPoint();
+                                everyone[currentTurn].RefreshTimeInTurn();
 
-                //If stop button wasn't push
-                if (!mustEndTurn) {
-                    //Add current time
-                    mydata += '"currentTime" : ' + currentTime + '}';
+                                //each second
+                                while (!stopCombat && !mustEndTurn && !everyone[currentTurn].IsTimeUp()) {
 
-                    //Parse the base json into a real json and emit/broadcast it
-                    let myjson = JSON.parse(mydata);
-                    //console.log(myjson);
+                                    everyone[currentTurn].actualTimeInTurn -= 1;
+                                    socket.emit('UpdateCharacterStats', everyone[currentTurn]);
+                                    socket.broadcast.emit('UpdateCharacterStats', everyone[currentTurn]);
 
-                    socket.emit('UpdateTime', myjson);
-                    socket.broadcast.emit('UpdateTime', myjson);
 
-                    //If time = 0; it's the next player/ennemy turn
-                    if (currentTime <= 0) {
-                        currentTime = timeEachTurn;
-                        currentTurn += 1;
-                        if (currentTurn > monsterGroup.monsters.length) {
-                            currentTurn = 0;
+                                    await functions.sleepTurn(1000);
+                                }
+                                //Reduce cooldown
+                                everyone[currentTurn].ReduceAllCooldown();
+
+                                //If end turn button was activated
+                                if (mustEndTurn) {
+                                    mustEndTurn = false;
+                                    everyone[currentTurn].actualTimeInTurn = 0;
+                                }
+
+                                //next turn
+                                currentTurn = (currentTurn >= (everyone.length - 1) ? 0 : currentTurn + 1);
+                                idCurrentTurn = everyone[currentTurn].id;
+                            }
+                            stopCombat = false;
+
+
+
+
+
+                            //     if (stopCombat) {
+                            //         stopCombat = false;
+
+                            //     } else {
+
+                            //         //refill pa pm at the end of a turn
+                            //         if (currentTime == timeEachTurn) {
+                            //             let lastCurrentTurn = currentTurn - 1;
+                            //             if (lastCurrentTurn < 0) {
+                            //                 lastCurrentTurn = monsterGroup.monsters.length;
+                            //             }
+                            //             if (lastCurrentTurn == 0) {
+                            //                 player.RefreshActionAndMovementPoint();
+                            //                 socket.emit('UpdateCharacterStats', player);//player.GetBaseCaracteristicAsJson());
+                            //                 socket.broadcast.emit('UpdateCharacterStats', player);//player.GetBaseCaracteristicAsJson());
+                            //             }
+                            //             else {
+                            //                 monsterGroup.monsters[lastCurrentTurn - 1].RefreshActionAndMovementPoint();
+                            //                 socket.emit('UpdateCharacterStats', monsterGroup.monsters[lastCurrentTurn - 1]);//.GetBaseCaracteristicAsJson());
+                            //                 socket.broadcast.emit('UpdateCharacterStats', monsterGroup.monsters[lastCurrentTurn - 1]);//.GetBaseCaracteristicAsJson());
+                            //             }
+                            //             //3 seconds turn for ennemies
+                            //             if (currentTurn > 0) {
+                            //                 currentTime = 3;
+                            //             }
+                            //         }
+
+                            //         //Create base json with id and timeEachTurn
+                            //         let mydata = '{'
+                            //             + '"id" : "';
+                            //         if (currentTurn == 0) {
+
+                            //             mydata += player.id + '",';
+                            //             idCurrentTurn = player.id;
+                            //         } else {
+                            //             mydata += monsterGroup.monsters[currentTurn - 1].id + '",';
+                            //             idCurrentTurn = monsterGroup.monsters[currentTurn - 1].id;
+                            //         }
+                            //         mydata += '"timeEachTurn" : ' + timeEachTurn + ',';
+
+                            //         //If stop button wasn't push
+                            //         if (!mustEndTurn) {
+                            //             //Add current time
+                            //             mydata += '"currentTime" : ' + currentTime + '}';
+
+                            //             //Parse the base json into a real json and emit/broadcast it
+                            //             let myjson = JSON.parse(mydata);
+                            //             //console.log(myjson);
+
+                            //             socket.emit('UpdateTime', myjson);
+                            //             socket.broadcast.emit('UpdateTime', myjson);
+
+                            //             //If time = 0; it's the next player/ennemy turn
+                            //             if (currentTime <= 0) {
+                            //                 currentTime = timeEachTurn;
+                            //                 currentTurn += 1;
+                            //                 if (currentTurn > monsterGroup.monsters.length) {
+                            //                     currentTurn = 0;
+                            //                 }
+                            //             } else {
+                            //                 currentTime -= 1;
+                            //             }
+                            //             //If stop button was push
+                            //         } else {
+                            //             //Set current time to 0, then parse the base json into a real json and emit/broadcast it
+                            //             mydata += '"currentTime" : ' + 0 + '}';
+                            //             let myjson = JSON.parse(mydata);
+                            //             //console.log(myjson);
+
+                            //             socket.emit('UpdateTime', myjson);
+                            //             socket.broadcast.emit('UpdateTime', myjson);
+
+                            //             //Next player/ennemy turn
+                            //             currentTime = timeEachTurn;
+                            //             currentTurn += 1;
+                            //             if (currentTurn > monsterGroup.monsters.length) {
+                            //                 currentTurn = 0;
+                            //             }
+                            //             mustEndTurn = false;
+                            //         }
+
+                            //         setTimeout(SendTurnMessageRec, 1000, socket, currentTime, player, monsterGroup, currentTurn);
+                            //     }
                         }
-                    } else {
-                        currentTime -= 1;
-                    }
-                    //If stop button was push
-                } else {
-                    //Set current time to 0, then parse the base json into a real json and emit/broadcast it
-                    mydata += '"currentTime" : ' + 0 + '}';
-                    let myjson = JSON.parse(mydata);
-                    //console.log(myjson);
 
-                    socket.emit('UpdateTime', myjson);
-                    socket.broadcast.emit('UpdateTime', myjson);
-
-                    //Next player/ennemy turn
-                    currentTime = timeEachTurn;
-                    currentTurn += 1;
-                    if (currentTurn > monsterGroup.monsters.length) {
-                        currentTurn = 0;
-                    }
-                    mustEndTurn = false;
+                    });
                 }
-
-                if (stopCombat) {
-                    stopCombat = false;
-                } else {
-                    setTimeout(SendTurnMessageRec, 1000, socket, currentTime, player, monsterGroup, currentTurn);
-                }
-            }
-
+            });
         });
     })();
 });

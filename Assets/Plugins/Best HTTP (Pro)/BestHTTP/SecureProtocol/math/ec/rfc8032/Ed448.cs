@@ -281,7 +281,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.EC.Rfc8032
 
         private static sbyte[] GetWnaf(uint[] n, int width)
         {
-            Debug.Assert(n[ScalarUints - 1] >> 31 == 0U);
+            Debug.Assert(n[ScalarUints - 1] >> 30 == 0U);
 
             uint[] t = new uint[ScalarUints * 2];
             {
@@ -295,7 +295,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.EC.Rfc8032
                 }
             }
 
-            sbyte[] ws = new sbyte[448];
+            sbyte[] ws = new sbyte[447];
 
             uint pow2 = 1U << width;
             uint mask = pow2 - 1U;
@@ -434,7 +434,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.EC.Rfc8032
             DecodeScalar(k, 0, nA);
 
             PointExt pR = new PointExt();
-            ScalarMultStraussVar(nS, nA, pA, pR);
+            ScalarMultStrausVar(nS, nA, pA, pR);
 
             byte[] check = new byte[PointBytes];
             EncodePoint(pR, check, 0);
@@ -570,9 +570,9 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.EC.Rfc8032
 
             for (int i = 0; i < PrecompPoints; ++i)
             {
-                int mask = ((i ^ index) - 1) >> 31;
-                Nat.CMov(X448Field.Size, mask, precompBase, off, p.x, 0);   off += X448Field.Size;
-                Nat.CMov(X448Field.Size, mask, precompBase, off, p.y, 0);   off += X448Field.Size;
+                int cond = ((i ^ index) - 1) >> 31;
+                X448Field.CMov(cond, precompBase, off, p.x, 0);     off += X448Field.Size;
+                X448Field.CMov(cond, precompBase, off, p.y, 0);     off += X448Field.Size;
             }
         }
 
@@ -1034,7 +1034,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.EC.Rfc8032
             X448Field.Copy(p.y, 0, y, 0);
         }
 
-        private static void ScalarMultStraussVar(uint[] nb, uint[] np, PointExt p, PointExt r)
+        private static void ScalarMultStrausVar(uint[] nb, uint[] np, PointExt p, PointExt r)
         {
             Precompute();
 
@@ -1047,13 +1047,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Math.EC.Rfc8032
 
             PointSetNeutral(r);
 
-            int bit = 447;
-            while (bit > 0 && (ws_b[bit] | ws_p[bit]) == 0)
-            {
-                --bit;
-            }
-
-            for (;;)
+            for (int bit = 446;;)
             {
                 int wb = ws_b[bit];
                 if (wb != 0)

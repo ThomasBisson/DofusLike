@@ -19,7 +19,6 @@ public class SpellsAndControls : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
     }
 
     #region METHODS
@@ -27,18 +26,6 @@ public class SpellsAndControls : MonoBehaviour
 
     public void FillCallbacksAndIconsSpellButtons(SpellButton.OnClick method, List<string> ids, List<Sprite> sprites)
     {
-        //TODO : See what I wanted to do here ????????
-
-        //int max;
-        //if (ids.Count > m_spellButtons.Count)
-        //    max = ids.Count;
-        //else
-        //    max = m_spellButtons.Count;
-
-        //Debug.Log("max : " + max);
-        //Debug.Log("ids : " + ids.Count);
-        //Debug.Log("spells : " + m_spellButtons.Count);
-
         for (int i = 0; i < ids.Count; i++)
         {
             m_spellButtons[i].SetOnClick(method, ids[i]);
@@ -56,6 +43,27 @@ public class SpellsAndControls : MonoBehaviour
     {
         m_endTurnButton.onClick.AddListener(func);
     }
+
+    //public void SubscribeToCooldownEvents(PlayerFight player)
+    //{
+    //    foreach (var spellButton in m_spellButtons)
+    //        player.SubscribeToSpellCooldownEvents(HandleSpellCooldown);
+    //}
+
+    public void HandleSpellCooldown(Dictionary<string, float> dic)
+    {
+        foreach (var spellCooldown in dic) {
+            foreach (var spellButton in m_spellButtons) {
+                if(spellButton.m_spellID == spellCooldown.Key)
+                {
+                    Debug.Log("Value spell [" + spellCooldown.Key + "] :  " + spellCooldown.Value);
+                    spellButton.m_imageCoolDown.UpdateMyFillValue(spellCooldown.Value);
+                }
+            }
+        }
+    }
+
+
 
     #endregion
 

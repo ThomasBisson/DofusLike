@@ -4,6 +4,8 @@ using System;
 using System.Collections;
 
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1;
+using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.X500;
+using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.X500.Style;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.X509;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities;
 using BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Collections;
@@ -12,6 +14,10 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
 {
     public class PkixNameConstraintValidator
     {
+        // TODO Implement X500Name and styles
+        //private static readonly DerObjectIdentifier SerialNumberOid = Rfc4519Style.SerialNumber;
+        private static readonly DerObjectIdentifier SerialNumberOid = new DerObjectIdentifier("2.5.4.5");
+
         private ISet excludedSubtreesDN = new HashSet();
 
         private ISet excludedSubtreesDNS = new HashSet();
@@ -40,19 +46,32 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             Asn1Sequence dns,
             Asn1Sequence subtree)
         {
-            if (subtree.Count < 1)
-            {
+            if (subtree.Count < 1 || subtree.Count > dns.Count)
                 return false;
-            }
 
-            if (subtree.Count > dns.Count)
+            for (int j = 0; j < subtree.Count; ++j)
             {
-                return false;
-            }
+                // both subtree and dns are a ASN.1 Name and the elements are a RDN
+                Rdn subtreeRdn = Rdn.GetInstance(subtree[j]);
+                Rdn dnsRdn = Rdn.GetInstance(dns[j]);
 
-            for (int j = subtree.Count - 1; j >= 0; j--)
-            {
-                if (!(subtree[j].Equals(dns[j])))
+                // check if types and values of all naming attributes are matching, other types which are not restricted are allowed, see https://tools.ietf.org/html/rfc5280#section-7.1
+
+                // Two relative distinguished names
+                //   RDN1 and RDN2 match if they have the same number of naming attributes
+                //   and for each naming attribute in RDN1 there is a matching naming attribute in RDN2.
+                //   NOTE: this is checking the attributes in the same order, which might be not necessary, if this is a problem also IETFUtils.rDNAreEqual mus tbe changed.
+                // use new RFC 5280 comparison, NOTE: this is now different from with RFC 3280, where only binary comparison is used
+                // obey RFC 5280 7.1
+                // special treatment of serialNumber for GSMA SGP.22 RSP specification
+                if (subtreeRdn.Count == 1 && dnsRdn.Count == 1
+                    && subtreeRdn.GetFirst().GetType().Equals(SerialNumberOid)
+                    && dnsRdn.GetFirst().GetType().Equals(SerialNumberOid))
+                {
+                    if (!BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Platform.StartsWith(dnsRdn.GetFirst().Value.ToString(), subtreeRdn.GetFirst().Value.ToString()))
+                        return false;
+                }
+                else if (!IetfUtilities.RdnAreEqual(subtreeRdn, dnsRdn))
                 {
                     return false;
                 }
@@ -204,7 +223,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             ISet intersect = new HashSet();
             for (IEnumerator it = emails.GetEnumerator(); it.MoveNext(); )
             {
-                String email = ExtractNameAsString(((GeneralSubtree)it.Current)
+                string email = ExtractNameAsString(((GeneralSubtree)it.Current)
                     .Base);
 
                 if (permitted == null)
@@ -219,7 +238,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
                     IEnumerator it2 = permitted.GetEnumerator();
                     while (it2.MoveNext())
                     {
-                        String _permitted = (String)it2.Current;
+                        string _permitted = (string)it2.Current;
 
                         intersectEmail(email, _permitted, intersect);
                     }
@@ -228,7 +247,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             return intersect;
         }
 
-        private ISet UnionEmail(ISet excluded, String email)
+        private ISet UnionEmail(ISet excluded, string email)
         {
             if (excluded.IsEmpty)
             {
@@ -246,9 +265,9 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
                 IEnumerator it = excluded.GetEnumerator();
                 while (it.MoveNext())
                 {
-                    String _excluded = (String)it.Current;
+                    string _excluded = (string)it.Current;
 
-                    unionEmail(_excluded, email, union);
+                    UnionEmail(_excluded, email, union);
                 }
 
                 return union;
@@ -478,7 +497,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             return new byte[][] { min1, max1, min2, max2 };
         }
 
-        private void CheckPermittedEmail(ISet permitted, String email)
+        private void CheckPermittedEmail(ISet permitted, string email)
         //throws PkixNameConstraintValidatorException
         {
             if (permitted == null)
@@ -490,7 +509,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
 
             while (it.MoveNext())
             {
-                String str = ((String)it.Current);
+                string str = ((string)it.Current);
 
                 if (EmailIsConstrained(email, str))
                 {
@@ -507,7 +526,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
                 "Subject email address is not from a permitted subtree.");
         }
 
-        private void CheckExcludedEmail(ISet excluded, String email)
+        private void CheckExcludedEmail(ISet excluded, string email)
         //throws PkixNameConstraintValidatorException
         {
             if (excluded.IsEmpty)
@@ -519,7 +538,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
 
             while (it.MoveNext())
             {
-                String str = (String)it.Current;
+                string str = (string)it.Current;
 
                 if (EmailIsConstrained(email, str))
                 {
@@ -576,7 +595,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
          * @throws PkixNameConstraintValidatorException
          *          if the IP is excluded.
          */
-        private void checkExcludedIP(ISet excluded, byte[] ip)
+        private void CheckExcludedIP(ISet excluded, byte[] ip)
         //throws PkixNameConstraintValidatorException
         {
             if (excluded.IsEmpty)
@@ -634,9 +653,9 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             return BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Arrays.AreEqual(permittedSubnetAddress, ipSubnetAddress);
         }
 
-        private bool EmailIsConstrained(String email, String constraint)
+        private bool EmailIsConstrained(string email, string constraint)
         {
-            String sub = email.Substring(email.IndexOf('@') + 1);
+            string sub = email.Substring(email.IndexOf('@') + 1);
             // a particular mailbox
             if (constraint.IndexOf('@') != -1)
             {
@@ -661,28 +680,27 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             return false;
         }
 
-        private bool WithinDomain(String testDomain, String domain)
+        private bool WithinDomain(string testDomain, string domain)
         {
-            String tempDomain = domain;
+            string tempDomain = domain;
             if (BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Platform.StartsWith(tempDomain, "."))
             {
                 tempDomain = tempDomain.Substring(1);
             }
-            String[] domainParts = tempDomain.Split('.'); // Strings.split(tempDomain, '.');
-            String[] testDomainParts = testDomain.Split('.'); // Strings.split(testDomain, '.');
+
+            string[] domainParts = tempDomain.Split('.'); // Strings.split(tempDomain, '.');
+            string[] testDomainParts = testDomain.Split('.'); // Strings.split(testDomain, '.');
 
             // must have at least one subdomain
             if (testDomainParts.Length <= domainParts.Length)
-            {
                 return false;
-            }
 
             int d = testDomainParts.Length - domainParts.Length;
             for (int i = -1; i < domainParts.Length; i++)
             {
                 if (i == -1)
                 {
-                    if (testDomainParts[i + d].Equals(""))
+                    if (testDomainParts[i + d].Length < 1)
                     {
                         return false;
                     }
@@ -695,55 +713,33 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             return true;
         }
 
-        private void CheckPermittedDNS(ISet permitted, String dns)
-        //throws PkixNameConstraintValidatorException
+        private void CheckPermittedDns(ISet permitted, string dns)
+            //throws PkixNameConstraintValidatorException
         {
-            if (permitted == null)
-            {
+            if (null == permitted)
                 return;
-            }
 
-            IEnumerator it = permitted.GetEnumerator();
-
-            while (it.MoveNext())
+            foreach (string str in permitted)
             {
-                String str = ((String)it.Current);
-
-                // is sub domain
-                if (WithinDomain(dns, str)
-                    || BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Platform.ToUpperInvariant(dns).Equals(BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Platform.ToUpperInvariant(str)))
-                {
+                // is sub domain or the same
+                if (WithinDomain(dns, str) || BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Platform.EqualsIgnoreCase(dns, str))
                     return;
-                }
             }
+
             if (dns.Length == 0 && permitted.Count == 0)
-            {
                 return;
-            }
-            throw new PkixNameConstraintValidatorException(
-                "DNS is not from a permitted subtree.");
+
+            throw new PkixNameConstraintValidatorException("DNS is not from a permitted subtree.");
         }
 
-        private void checkExcludedDNS(ISet excluded, String dns)
-        //     throws PkixNameConstraintValidatorException
+        private void CheckExcludedDns(ISet excluded, string dns)
+            //throws PkixNameConstraintValidatorException
         {
-            if (excluded.IsEmpty)
+            foreach (string str in excluded)
             {
-                return;
-            }
-
-            IEnumerator it = excluded.GetEnumerator();
-
-            while (it.MoveNext())
-            {
-                String str = ((String)it.Current);
-
                 // is sub domain or the same
 				if (WithinDomain(dns, str) || BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Platform.EqualsIgnoreCase(dns, str))
-                {
-                    throw new PkixNameConstraintValidatorException(
-                        "DNS is from an excluded subtree.");
-                }
+                    throw new PkixNameConstraintValidatorException("DNS is from an excluded subtree.");
             }
         }
 
@@ -756,12 +752,12 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
          * @param email2 Email address constraint 2.
          * @param union  The union.
          */
-        private void unionEmail(String email1, String email2, ISet union)
+        private void UnionEmail(string email1, string email2, ISet union)
         {
             // email1 is a particular address
             if (email1.IndexOf('@') != -1)
             {
-                String _sub = email1.Substring(email1.IndexOf('@') + 1);
+                string _sub = email1.Substring(email1.IndexOf('@') + 1);
                 // both are a particular mailbox
                 if (email2.IndexOf('@') != -1)
                 {
@@ -807,7 +803,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             {
                 if (email2.IndexOf('@') != -1)
                 {
-                    String _sub = email2.Substring(email1.IndexOf('@') + 1);
+                    string _sub = email2.Substring(email1.IndexOf('@') + 1);
                     if (WithinDomain(_sub, email1))
                     {
                         union.Add(email1);
@@ -853,7 +849,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             {
                 if (email2.IndexOf('@') != -1)
                 {
-                    String _sub = email2.Substring(email1.IndexOf('@') + 1);
+                    string _sub = email2.Substring(email1.IndexOf('@') + 1);
                     if (BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Platform.EqualsIgnoreCase(_sub, email1))
                     {
                         union.Add(email1);
@@ -893,12 +889,12 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             }
         }
 
-        private void unionURI(String email1, String email2, ISet union)
+        private void unionURI(string email1, string email2, ISet union)
         {
             // email1 is a particular address
             if (email1.IndexOf('@') != -1)
             {
-                String _sub = email1.Substring(email1.IndexOf('@') + 1);
+                string _sub = email1.Substring(email1.IndexOf('@') + 1);
                 // both are a particular mailbox
                 if (email2.IndexOf('@') != -1)
                 {
@@ -945,7 +941,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             {
                 if (email2.IndexOf('@') != -1)
                 {
-                    String _sub = email2.Substring(email1.IndexOf('@') + 1);
+                    string _sub = email2.Substring(email1.IndexOf('@') + 1);
                     if (WithinDomain(_sub, email1))
                     {
                         union.Add(email1);
@@ -991,7 +987,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             {
                 if (email2.IndexOf('@') != -1)
                 {
-                    String _sub = email2.Substring(email1.IndexOf('@') + 1);
+                    string _sub = email2.Substring(email1.IndexOf('@') + 1);
                     if (BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Platform.EqualsIgnoreCase(_sub, email1))
                     {
                         union.Add(email1);
@@ -1036,7 +1032,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             ISet intersect = new HashSet();
             for (IEnumerator it = dnss.GetEnumerator(); it.MoveNext(); )
             {
-                String dns = ExtractNameAsString(((GeneralSubtree)it.Current)
+                string dns = ExtractNameAsString(((GeneralSubtree)it.Current)
                     .Base);
                 if (permitted == null)
                 {
@@ -1050,7 +1046,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
                     IEnumerator _iter = permitted.GetEnumerator();
                     while (_iter.MoveNext())
                     {
-                        String _permitted = (String)_iter.Current;
+                        string _permitted = (string)_iter.Current;
 
                         if (WithinDomain(_permitted, dns))
                         {
@@ -1067,7 +1063,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             return intersect;
         }
 
-        protected ISet unionDNS(ISet excluded, String dns)
+        protected ISet unionDNS(ISet excluded, string dns)
         {
             if (excluded.IsEmpty)
             {
@@ -1086,7 +1082,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
                 IEnumerator _iter = excluded.GetEnumerator();
                 while (_iter.MoveNext())
                 {
-                    String _permitted = (String)_iter.Current;
+                    string _permitted = (string)_iter.Current;
 
                     if (WithinDomain(_permitted, dns))
                     {
@@ -1115,12 +1111,12 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
          * @param email2    Email address constraint 2.
          * @param intersect The intersection.
          */
-        private void intersectEmail(String email1, String email2, ISet intersect)
+        private void intersectEmail(string email1, string email2, ISet intersect)
         {
             // email1 is a particular address
             if (email1.IndexOf('@') != -1)
             {
-                String _sub = email1.Substring(email1.IndexOf('@') + 1);
+                string _sub = email1.Substring(email1.IndexOf('@') + 1);
                 // both are a particular mailbox
                 if (email2.IndexOf('@') != -1)
                 {
@@ -1151,7 +1147,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             {
                 if (email2.IndexOf('@') != -1)
                 {
-                    String _sub = email2.Substring(email1.IndexOf('@') + 1);
+                    string _sub = email2.Substring(email1.IndexOf('@') + 1);
                     if (WithinDomain(_sub, email1))
                     {
                         intersect.Add(email2);
@@ -1182,7 +1178,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             {
                 if (email2.IndexOf('@') != -1)
                 {
-                    String _sub = email2.Substring(email2.IndexOf('@') + 1);
+                    string _sub = email2.Substring(email2.IndexOf('@') + 1);
                     if (BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Platform.EqualsIgnoreCase(_sub, email1))
                     {
                         intersect.Add(email2);
@@ -1207,7 +1203,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             }
         }
 
-        private void checkExcludedURI(ISet excluded, String uri)
+        private void checkExcludedURI(ISet excluded, string uri)
         //       throws PkixNameConstraintValidatorException
         {
             if (excluded.IsEmpty)
@@ -1219,7 +1215,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
 
             while (it.MoveNext())
             {
-                String str = ((String)it.Current);
+                string str = ((string)it.Current);
 
                 if (IsUriConstrained(uri, str))
                 {
@@ -1234,7 +1230,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             ISet intersect = new HashSet();
             for (IEnumerator it = uris.GetEnumerator(); it.MoveNext(); )
             {
-                String uri = ExtractNameAsString(((GeneralSubtree)it.Current)
+                string uri = ExtractNameAsString(((GeneralSubtree)it.Current)
                     .Base);
                 if (permitted == null)
                 {
@@ -1248,7 +1244,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
                     IEnumerator _iter = permitted.GetEnumerator();
                     while (_iter.MoveNext())
                     {
-                        String _permitted = (String)_iter.Current;
+                        string _permitted = (string)_iter.Current;
                         intersectURI(_permitted, uri, intersect);
                     }
                 }
@@ -1256,7 +1252,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             return intersect;
         }
 
-        private ISet unionURI(ISet excluded, String uri)
+        private ISet unionURI(ISet excluded, string uri)
         {
             if (excluded.IsEmpty)
             {
@@ -1275,7 +1271,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
                 IEnumerator _iter = excluded.GetEnumerator();
                 while (_iter.MoveNext())
                 {
-                    String _excluded = (String)_iter.Current;
+                    string _excluded = (string)_iter.Current;
 
                     unionURI(_excluded, uri, union);
                 }
@@ -1284,12 +1280,12 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             }
         }
 
-        private void intersectURI(String email1, String email2, ISet intersect)
+        private void intersectURI(string email1, string email2, ISet intersect)
         {
             // email1 is a particular address
             if (email1.IndexOf('@') != -1)
             {
-                String _sub = email1.Substring(email1.IndexOf('@') + 1);
+                string _sub = email1.Substring(email1.IndexOf('@') + 1);
                 // both are a particular mailbox
                 if (email2.IndexOf('@') != -1)
                 {
@@ -1320,7 +1316,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             {
                 if (email2.IndexOf('@') != -1)
                 {
-                    String _sub = email2.Substring(email1.IndexOf('@') + 1);
+                    string _sub = email2.Substring(email1.IndexOf('@') + 1);
                     if (WithinDomain(_sub, email1))
                     {
                         intersect.Add(email2);
@@ -1351,7 +1347,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             {
                 if (email2.IndexOf('@') != -1)
                 {
-                    String _sub = email2.Substring(email2.IndexOf('@') + 1);
+                    string _sub = email2.Substring(email2.IndexOf('@') + 1);
                     if (BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Platform.EqualsIgnoreCase(_sub, email1))
                     {
                         intersect.Add(email2);
@@ -1376,7 +1372,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             }
         }
 
-        private void CheckPermittedURI(ISet permitted, String uri)
+        private void CheckPermittedURI(ISet permitted, string uri)
         //        throws PkixNameConstraintValidatorException
         {
             if (permitted == null)
@@ -1388,7 +1384,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
 
             while (it.MoveNext())
             {
-                String str = ((String)it.Current);
+                string str = ((string)it.Current);
 
                 if (IsUriConstrained(uri, str))
                 {
@@ -1403,9 +1399,9 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
                 "URI is not from a permitted subtree.");
         }
 
-        private bool IsUriConstrained(String uri, String constraint)
+        private bool IsUriConstrained(string uri, string constraint)
         {
-            String host = ExtractHostFromURL(uri);
+            string host = ExtractHostFromURL(uri);
             // a host
             if (!BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Platform.StartsWith(constraint, "."))
             {
@@ -1424,11 +1420,11 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             return false;
         }
 
-        private static String ExtractHostFromURL(String url)
+        private static string ExtractHostFromURL(string url)
         {
             // see RFC 1738
             // remove ':' after protocol, e.g. http:
-            String sub = url.Substring(url.IndexOf(':') + 1);
+            string sub = url.Substring(url.IndexOf(':') + 1);
             // extract host from Common Internet Scheme Syntax, e.g. http://
             int idxOfSlashes = BestHTTP.SecureProtocol.Org.BouncyCastle.Utilities.Platform.IndexOf(sub, "//");
             if (idxOfSlashes != -1)
@@ -1468,7 +1464,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
                         ExtractNameAsString(name));
                     break;
                 case 2:
-                    CheckPermittedDNS(permittedSubtreesDNS, DerIA5String.GetInstance(
+                    CheckPermittedDns(permittedSubtreesDNS, DerIA5String.GetInstance(
                         name.Name).GetString());
                     break;
                 case 4:
@@ -1503,7 +1499,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
                     CheckExcludedEmail(excludedSubtreesEmail, ExtractNameAsString(name));
                     break;
                 case 2:
-                    checkExcludedDNS(excludedSubtreesDNS, DerIA5String.GetInstance(
+                    CheckExcludedDns(excludedSubtreesDNS, DerIA5String.GetInstance(
                         name.Name).GetString());
                     break;
                 case 4:
@@ -1516,7 +1512,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
                 case 7:
                     byte[] ip = Asn1OctetString.GetInstance(name.Name).GetOctets();
 
-                    checkExcludedIP(excludedSubtreesIP, ip);
+                    CheckExcludedIP(excludedSubtreesIP, ip);
                     break;
             }
         }
@@ -1577,7 +1573,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             }
         }
 
-        private String ExtractNameAsString(GeneralName name)
+        private string ExtractNameAsString(GeneralName name)
         {
             return DerIA5String.GetInstance(name.Name).GetString();
         }
@@ -1842,9 +1838,9 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
          * @param ip The IP with subnet mask.
          * @return The stringified IP address.
          */
-        private String StringifyIP(byte[] ip)
+        private string StringifyIP(byte[] ip)
         {
-            String temp = "";
+            string temp = "";
             for (int i = 0; i < ip.Length / 2; i++)
             {
                 //temp += Integer.toString(ip[i] & 0x00FF) + ".";
@@ -1861,9 +1857,9 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             return temp;
         }
 
-        private String StringifyIPCollection(ISet ips)
+        private string StringifyIPCollection(ISet ips)
         {
-            String temp = "";
+            string temp = "";
             temp += "[";
             for (IEnumerator it = ips.GetEnumerator(); it.MoveNext(); )
             {
@@ -1878,9 +1874,9 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Pkix
             return temp;
         }
 
-        public override String ToString()
+        public override string ToString()
         {
-            String temp = "";
+            string temp = "";
 
             temp += "permitted:\n";
             if (permittedSubtreesDN != null)

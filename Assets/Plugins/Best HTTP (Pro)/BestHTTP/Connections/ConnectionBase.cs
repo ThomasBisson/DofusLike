@@ -13,9 +13,9 @@ using System.Threading;
 
 namespace BestHTTP
 {
-    internal delegate void HTTPConnectionRecycledDelegate(ConnectionBase conn);
+    public delegate void HTTPConnectionRecycledDelegate(ConnectionBase conn);
 
-    internal abstract class ConnectionBase : IDisposable
+    public abstract class ConnectionBase : IDisposable
     {
         #region Public Properties
 
@@ -102,26 +102,12 @@ namespace BestHTTP
             CurrentRequest = request;
 
             if (IsThreaded)
-            {
-#if NETFX_CORE
-#pragma warning disable 4014
-                Windows.System.Threading.ThreadPool.RunAsync(ThreadFunc);
-#pragma warning restore 4014
-#else
-                ThreadPool.QueueUserWorkItem(new WaitCallback(ThreadFunc));
-                //new Thread(ThreadFunc)
-                //    .Start();
-#endif
-            }
+                PlatformSupport.Threading.ThreadedRunner.RunLongLiving(ThreadFunc);
             else
-                ThreadFunc(null);
+                ThreadFunc();
         }
 
-        protected virtual
-#if NETFX_CORE
-            async
-#endif
-            void ThreadFunc(object param)
+        protected virtual void ThreadFunc()
         {
 
         }
@@ -166,7 +152,10 @@ namespace BestHTTP
                 {
                     if (CurrentRequest != null && CurrentRequest.Response != null && CurrentRequest.Response.IsUpgraded)
                         CurrentRequest.UpgradeCallback();
-                    State = HTTPConnectionStates.WaitForProtocolShutdown;
+
+                    // Change state only if state is still Upgraded, otherwise we would overwrite the newly set state
+                    if (State == HTTPConnectionStates.Upgraded)
+                        State = HTTPConnectionStates.WaitForProtocolShutdown;
                 }
                 else
                     CurrentRequest.CallCallback();

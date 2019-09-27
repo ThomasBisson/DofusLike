@@ -1,3 +1,69 @@
+1.12.5 (2019.09.03)
+General
+-[Bugfix] Downloading a file with >4GB size with a Content-Length header the plugin tried to read 0 bytes resulting in a failed download.
+-[Bugfix] HTTPCacheService.BeginMaintainence didn't removed chache entities.
+-[Bugfix] When cache entity's GetBodyStream throws an exception the plugin will delete the cache entry and retry the request.
+SignalR Core
+-[Improvement] Improved compatibility with SignalR Core 3
+
+1.12.4 (2019.07.30)
+Socket.IO
+-[Bugfix] [Polling Transport] Fixed a bug where the received length is different from the byte-length of the packet and the plugin read and tried to parse the truncated packet.
+SignalR Core
+-[Bugfix] All transport error during closing will be ignored now.
+Websocket
+-[Bugfix] Fixed a NullReferenceException that occured when the send thread closed and other parts tried to use a disposed resource.
+
+1.12.3 (2019.07.17)
+General
+-[Improvement] HTTPCacheService will not try to cache entries when no caching headers are present
+-[Bugfix] Fixed a bug where the HTTPCacheService would try to use non-supported recursive locking
+-[Bugfix] WriteOnlyBufferedStream didn't call Flush on the underlying stream
+Websocket
+-[Bugfix] Didn't use the created buffered stream
+
+1.12.2 (2019.06.12)
+General
+-[Improvement] When the same content is already stored on the disk, new responses will no write it again saving cpu and disk activity
+-[Bugfix] Fixed compile errors for UWP
+-[Bugfix] Fixed a possible NullReferenceException when the server sends back no headers at all
+-[Bugfix] Read and store responses are in a write lock to avoid an error when two or more requests to the same uri are executed.
+-[Bugfix] When CookieJar.Get called before any other CookieJar.Load it throwd an error
+
+1.12.1 (2019.05.29)
+General
+-[Bugfix] Callbacks didn't called when abort requested on a HTTPRequest
+-[Bugfix] ReaderWriterLockSlim of the HTTPRequest is nulled out while it later tried to use it
+
+1.12.0 (2019.05.28)
+General
+-[Improvement] Part of a larger code rewrite/overhaul removed a lot of locks and added lock-free collections and/or using ReaderWriterLockSlim. These changes affect all parts of the plugin from cookies to the signalr core protocol.
+-[Bugfix] Fixed a bug in the protocol upgrade callback to do not overwrite the connection's previously set state
+-[New Feature] HTTPRequest now supports the async-await pattern when CSHARP_7_OR_LATER is declared by Unity3d
+-[Improvement] HTTPManager.TryToMinimizeTCPLatency's default value became true
+-[Improvement] HTTPManager.MaxConnectionPerServer's default value became 6
+SignalRCore
+-[Bugfix] JSonProtocol now handles enums properly
+-[Improvement] JSonProtocol now can handle nullable types
+Server-Sent Events
+-[New Feature] Example added
+
+1.11.2 (2019.04.15)
+General
+-[New feature] HTTPManager.UserAgent field added.
+-[Bugfix] Removed doubled quotes from multipart/form-data boundary
+-[Improvement] FileConnection now uses BufferPoolMemoryStream too
+-[Improvement] Increased default HTTPManager.MaxConnectionPerServer from 4 to 6
+WebSocket
+-[New Feature] New LastMessageReceived property to access when the last message is received from the server.
+-[Bugfix] Removed custom host header creation as the HTTPRequest already sets it properly
+
+1.11.1 (2019.01.31)
+General
+-[Bugfix] Fixed compile errors when cookies and/or SignalR protocols are disabled
+SignalR
+-[New Feature] Initial Client -> Server streaming support added
+
 1.11.0 (2019.01.21)
 General
 -[New Feature] Implemented new buffer pool mechanism to reuse internal byte arrays. This is quite a large change that touches all part of the plugin, but reduces the plugin's memory garbage production very very much! (Thanks to Teemu @ Delta Cygni Labs for the base idea and code donation!)
@@ -8,7 +74,7 @@ General
 -[Improvement] Removed Unity's WWWForm option from AddField and FormUsage.
 -[Improvement] Updated BouncyCastle to the latest version.
 -[Improvement] BouncyCastle namespaces are moved under the BestHTTP.SecureProtocol namespace, custom class (like ICertificateVerifyer) are remaining under the Org.BouncyCastle.Crypto.Tls namespace. I hope this will help in cases where other plugins are bundling BC too.
--[BugFix] The request will fail if the proxy-authentication is failed
+-[Bugfix] The request will fail if the proxy-authentication is failed
 -[Bugfix] Caching headers set multiple times on redirection
 Socket.IO
 -[Bugfix] The plugin will not try to emit an error when the error callback throws an exception.

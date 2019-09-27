@@ -10,7 +10,7 @@ namespace BestHTTP.Authentication
     {
         private static Dictionary<string, Digest> Digests = new Dictionary<string, Digest>();
 
-        private static object Locker = new object();
+        private static System.Threading.ReaderWriterLockSlim rwLock = new System.Threading.ReaderWriterLockSlim(System.Threading.LockRecursionPolicy.NoRecursion);
 
         /// <summary>
         /// Array of algorithms that the plugin supports. It's in the order of priority(first has the highest priority).
@@ -19,36 +19,61 @@ namespace BestHTTP.Authentication
 
         public static Digest Get(Uri uri)
         {
-            lock (Locker)
-            {
+            rwLock.EnterReadLock();
+            try{
                 Digest digest = null;
                 if (Digests.TryGetValue(uri.Host, out digest))
                     if (!digest.IsUriProtected(uri))
                         return null;
                 return digest;
             }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
         }
 
         /// <summary>
-        /// It will retrive or create a new Digest for the given Uri.
+        /// It will retrieve or create a new Digest for the given Uri.
         /// </summary>
         /// <param name="uri"></param>
         /// <returns></returns>
         public static Digest GetOrCreate(Uri uri)
         {
-            lock (Locker)
-            {
+            rwLock.EnterUpgradeableReadLock();
+            try{
                 Digest digest = null;
                 if (!Digests.TryGetValue(uri.Host, out digest))
-                    Digests.Add(uri.Host, digest = new Digest(uri));
+                {
+                    rwLock.EnterWriteLock();
+                    try
+                    {
+                        Digests.Add(uri.Host, digest = new Digest(uri));
+                    }
+                    finally
+                    {
+                        rwLock.ExitWriteLock();
+                    }
+                }
                 return digest;
+            }
+            finally
+            {
+                rwLock.ExitUpgradeableReadLock();
             }
         }
 
         public static void Remove(Uri uri)
         {
-            lock(Locker)
+            rwLock.EnterWriteLock();
+            try
+            {
                 Digests.Remove(uri.Host);
+            }
+            finally
+            {
+                rwLock.ExitWriteLock();
+            }
         }
 
         public static string FindBest(List<string> authHeaders)

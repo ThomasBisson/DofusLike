@@ -160,7 +160,7 @@ namespace BestHTTP.SecureProtocol.Org.BouncyCastle.Crypto.Engines
         {
             for (int i = 0; i != encData.Length; i++)
             {
-                if (encData[i] != input[inOff])
+                if (encData[i] != input[inOff + i])
                 {
                     return false;
                 }

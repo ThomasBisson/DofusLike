@@ -94,6 +94,9 @@ namespace BestHTTP.SignalRCore.Transports
         
         void ITransport.Send(byte[] msg)
         {
+            if (this.webSocket == null)
+                return;
+
             // To help debugging, in the editor when the plugin's loggging level is set to All, we will
             //  send all messages in textual form. This will help the readability when sent through a proxy.
 #if UNITY_EDITOR
@@ -112,7 +115,7 @@ namespace BestHTTP.SignalRCore.Transports
             // https://github.com/aspnet/SignalR/blob/dev/specs/HubProtocol.md#overview
             // When our websocket connection is open, send the 'negotiation' message to the server.
 
-            string json = string.Format("{{'protocol':'{0}', 'version': 1}}", this.connection.Protocol.Encoder.Name);
+            string json = string.Format("{{\"protocol\":\"{0}\", \"version\": 1}}", this.connection.Protocol.Encoder.Name);
 
             byte[] buffer = JsonProtocol.WithSeparator(json);
 
@@ -200,8 +203,15 @@ namespace BestHTTP.SignalRCore.Transports
         {
             HTTPManager.Logger.Verbose("WebSocketTransport", "OnError: " + reason);
 
-            this.ErrorReason = reason;
-            this.State = TransportStates.Failed;
+            if (this.State == TransportStates.Closing)
+            {
+                this.State = TransportStates.Closed;
+            }
+            else
+            {
+                this.ErrorReason = reason;
+                this.State = TransportStates.Failed;
+            }
         }
 
         private void OnClosed(WebSocket.WebSocket webSocket, ushort code, string message)

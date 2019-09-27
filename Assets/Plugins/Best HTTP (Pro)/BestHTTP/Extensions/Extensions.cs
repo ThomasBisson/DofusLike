@@ -213,6 +213,11 @@ namespace BestHTTP.Extensions
             return str;
         }
 
+        public static string ToBinaryStr(this byte value)
+        {
+            return Convert.ToString(value, 2).PadLeft(8, '0');
+        }
+
         #endregion
 
         #region MD5 Hashing
