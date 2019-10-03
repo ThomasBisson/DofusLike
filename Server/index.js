@@ -11,15 +11,23 @@ var MyVector2 = require('./utils/MyVector2.js');
 
 var functions = require('./Functions');
 
-var timeEachTurn = 15;
+var DQN = require('./AI/DQN')
 
 server.listen(60000, function () {
-
-    //console.log(functions.testfunction());
 
     console.log("Server is now running...");
 
     (async function () {
+
+        let dqn = new DQN();
+        let values = dqn.getDataset();
+        await dqn.TrainData(values[0], values[1]);
+        values = dqn.getDataset();
+        values[0] = values[0].slice(210,220);
+        let predictions = dqn.Predict(values[0]);
+        console.log("Values : " + values[0]);
+        console.log("Predictions : " + predictions);
+
         var idCurrentTurn = '';
         var mustEndTurn = false;
         var stopCombat = false;
@@ -161,7 +169,6 @@ server.listen(60000, function () {
                         //Battle is ready, start the function that handle the gameplay
                         socket.on('BattleReadyInClient', function () {
                             console.log("id monster : " + idEnnemyGroupInBattle)
-                            //SendTurnMessageRec(socket, timeEachTurn, players[thisPlayerID], monsterGroups[idEnnemyGroupInBattle], 0);
                             SendTurnMessageRec(socket, players[thisPlayerID], monsterGroups[idEnnemyGroupInBattle]);
                         });
 
@@ -334,94 +341,6 @@ server.listen(60000, function () {
                                 idCurrentTurn = everyone[currentTurn].id;
                             }
                             stopCombat = false;
-
-
-
-
-
-                            //     if (stopCombat) {
-                            //         stopCombat = false;
-
-                            //     } else {
-
-                            //         //refill pa pm at the end of a turn
-                            //         if (currentTime == timeEachTurn) {
-                            //             let lastCurrentTurn = currentTurn - 1;
-                            //             if (lastCurrentTurn < 0) {
-                            //                 lastCurrentTurn = monsterGroup.monsters.length;
-                            //             }
-                            //             if (lastCurrentTurn == 0) {
-                            //                 player.RefreshActionAndMovementPoint();
-                            //                 socket.emit('UpdateCharacterStats', player);//player.GetBaseCaracteristicAsJson());
-                            //                 socket.broadcast.emit('UpdateCharacterStats', player);//player.GetBaseCaracteristicAsJson());
-                            //             }
-                            //             else {
-                            //                 monsterGroup.monsters[lastCurrentTurn - 1].RefreshActionAndMovementPoint();
-                            //                 socket.emit('UpdateCharacterStats', monsterGroup.monsters[lastCurrentTurn - 1]);//.GetBaseCaracteristicAsJson());
-                            //                 socket.broadcast.emit('UpdateCharacterStats', monsterGroup.monsters[lastCurrentTurn - 1]);//.GetBaseCaracteristicAsJson());
-                            //             }
-                            //             //3 seconds turn for ennemies
-                            //             if (currentTurn > 0) {
-                            //                 currentTime = 3;
-                            //             }
-                            //         }
-
-                            //         //Create base json with id and timeEachTurn
-                            //         let mydata = '{'
-                            //             + '"id" : "';
-                            //         if (currentTurn == 0) {
-
-                            //             mydata += player.id + '",';
-                            //             idCurrentTurn = player.id;
-                            //         } else {
-                            //             mydata += monsterGroup.monsters[currentTurn - 1].id + '",';
-                            //             idCurrentTurn = monsterGroup.monsters[currentTurn - 1].id;
-                            //         }
-                            //         mydata += '"timeEachTurn" : ' + timeEachTurn + ',';
-
-                            //         //If stop button wasn't push
-                            //         if (!mustEndTurn) {
-                            //             //Add current time
-                            //             mydata += '"currentTime" : ' + currentTime + '}';
-
-                            //             //Parse the base json into a real json and emit/broadcast it
-                            //             let myjson = JSON.parse(mydata);
-                            //             //console.log(myjson);
-
-                            //             socket.emit('UpdateTime', myjson);
-                            //             socket.broadcast.emit('UpdateTime', myjson);
-
-                            //             //If time = 0; it's the next player/ennemy turn
-                            //             if (currentTime <= 0) {
-                            //                 currentTime = timeEachTurn;
-                            //                 currentTurn += 1;
-                            //                 if (currentTurn > monsterGroup.monsters.length) {
-                            //                     currentTurn = 0;
-                            //                 }
-                            //             } else {
-                            //                 currentTime -= 1;
-                            //             }
-                            //             //If stop button was push
-                            //         } else {
-                            //             //Set current time to 0, then parse the base json into a real json and emit/broadcast it
-                            //             mydata += '"currentTime" : ' + 0 + '}';
-                            //             let myjson = JSON.parse(mydata);
-                            //             //console.log(myjson);
-
-                            //             socket.emit('UpdateTime', myjson);
-                            //             socket.broadcast.emit('UpdateTime', myjson);
-
-                            //             //Next player/ennemy turn
-                            //             currentTime = timeEachTurn;
-                            //             currentTurn += 1;
-                            //             if (currentTurn > monsterGroup.monsters.length) {
-                            //                 currentTurn = 0;
-                            //             }
-                            //             mustEndTurn = false;
-                            //         }
-
-                            //         setTimeout(SendTurnMessageRec, 1000, socket, currentTime, player, monsterGroup, currentTurn);
-                            //     }
                         }
 
                     });
