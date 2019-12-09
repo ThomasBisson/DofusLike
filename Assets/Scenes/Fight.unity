@@ -187,7 +187,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh40404
+  m_Name: pb_Mesh47020
   serializedVersion: 9
   m_SubMeshes:
   - serializedVersion: 2
@@ -924,7 +924,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh-1094
+  m_Name: pb_Mesh-125676
   serializedVersion: 9
   m_SubMeshes:
   - serializedVersion: 2
@@ -1099,8 +1099,8 @@ MonoBehaviour:
   m_size: 1
   m_offsetX: 0.5
   m_offsetZ: 0.5
-  m_totalSizeX: 20
-  m_totalSizeZ: 20
+  m_totalSizeX: 15
+  m_totalSizeZ: 15
   m_groundGridPrefab: {fileID: 1170927842925961572, guid: d95b6865768cf0d4a84d3d14af0a54c5,
     type: 3}
 --- !u!43 &1990827735
@@ -1109,7 +1109,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: pb_Mesh-1096
+  m_Name: pb_Mesh-125678
   serializedVersion: 9
   m_SubMeshes:
   - serializedVersion: 2
@@ -1350,5 +1350,45 @@ PrefabInstance:
       propertyPath: m_Mesh
       value: 
       objectReference: {fileID: 1990827735}
+    - target: {fileID: 5279919890709635679, guid: d659df632e34cdc47a20914c757eb93a,
+        type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 5279919890709635679, guid: d659df632e34cdc47a20914c757eb93a,
+        type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 5279919890709635679, guid: d659df632e34cdc47a20914c757eb93a,
+        type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 5279919890709635679, guid: d659df632e34cdc47a20914c757eb93a,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5279919892028236499, guid: d659df632e34cdc47a20914c757eb93a,
+        type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 5279919892028236499, guid: d659df632e34cdc47a20914c757eb93a,
+        type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 5279919892028236499, guid: d659df632e34cdc47a20914c757eb93a,
+        type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 5279919892028236499, guid: d659df632e34cdc47a20914c757eb93a,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d659df632e34cdc47a20914c757eb93a, type: 3}

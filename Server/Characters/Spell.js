@@ -12,8 +12,6 @@ module.exports = class Spell {
         this.additionnalPADuration = 0;
         this.additionnalPM = 0;
         this.additionnalPMDuration = 0;
-
-        this.actualCooldown = 0;
     }
 
     FillSpell(spell) {
@@ -63,16 +61,6 @@ module.exports = class Spell {
         }
         if (spell.hasOwnProperty('additionnalPMDuration')) {
             this.additionnalPMDuration = spell['additionnalPMDuration'];
-        }
-    }
-
-    AddActualCooldown(actualCooldown) {
-        this.actualCooldown = actualCooldown;
-    }
-
-    ReduceCooldown() {
-        if(this.actualCooldown != 0) {
-            this.actualCooldown -= 1;
         }
     }
     

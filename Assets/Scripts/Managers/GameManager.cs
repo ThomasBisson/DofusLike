@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -15,9 +16,15 @@ public class GameManager : MonoBehaviour
     {
         Instance = this;
         DontDestroyOnLoad(this.gameObject);
-        m_HUDUIManager = HUDUIManager.Instance;
     }
 
+    #region Instantiations
+
+    /// <summary>
+    /// Set the Player and its datas
+    /// </summary>
+    /// <param name="ni"></param>
+    /// <param name="data"></param>
     public static void SetAMainPlayer(NetworkIdentity ni, object[] data)
     {
         //Get needed values in data
@@ -133,22 +140,27 @@ public class GameManager : MonoBehaviour
         player.m_positionArrayFight = new Vector2(xFight, yFight);
     }
 
+    /// <summary>
+    /// Set the enneny as Ennemygroup or Ennemy and set their datas
+    /// </summary>
+    /// <param name="niEnnemyGroup"></param>
+    /// <param name="niEnnemies"></param>
+    /// <param name="data">All the data gotten from the server</param>
     public static void SetAnEnnemy(NetworkIdentity niEnnemyGroup, List<NetworkIdentity> niEnnemies, object[] data)
     {
         //Get needed values in data
         var dataGroup = data[0] as Dictionary<string, object>;
-        var dataEnnemiesAsList = dataGroup["monsters"] as List<object>;
+        var dataEnnemiesAsList = dataGroup["monsters"] as Dictionary<string, object>;
         var dataPosGroup = dataGroup["position"] as Dictionary<string, object>;
         var dataEnnemies = new List<Dictionary<string, object>>();
         var dataEnnemiesCaracteristic = new List<Dictionary<string, object>>();
 
         foreach (var obj in dataEnnemiesAsList) {
-            dataEnnemies.Add(obj as Dictionary<string, object>);
+            dataEnnemies.Add(obj.Value as Dictionary<string, object>);
             dataEnnemiesCaracteristic.Add(dataEnnemies[dataEnnemies.Count-1]["baseCharacteristic"] as Dictionary<string, object>);
         }
 
-
-        //Create EnnemyGroup
+        //Destroy the component Ennemy and create a component EnnemyGroup
         DestroyImmediate(niEnnemyGroup.GetComponent<EnnemyManager>());
         EnnemyGroup ennemyGroup = niEnnemyGroup.gameObject.AddComponent<EnnemyGroup>();
         ennemyGroup.ActivateMainMode();
@@ -187,7 +199,6 @@ public class GameManager : MonoBehaviour
             ennemy.m_positionArrayFight = new Vector2(xEnnemy, yEnnemy);
 
             ennemy.ChangeStrategy(EnnemyManager.PossibleStrategy.Main);
-
         }
 
         //Set the EnnemyGroup position
@@ -195,5 +206,33 @@ public class GameManager : MonoBehaviour
         float z = (float)(double)dataPosGroup["z"];
         ennemyGroup.Position = new Vector2(x, z);
     }
+
+    #endregion
+
+    #region SceneManagement
+
+    public void GoToMainScene()
+    {
+        SceneManager.LoadSceneAsync("HUD", LoadSceneMode.Additive);
+        SceneManager.LoadSceneAsync("Main", LoadSceneMode.Additive);
+        StartCoroutine(WaitSceneIsLoaded());
+    }
+
+    IEnumerator WaitSceneIsLoaded()
+    {
+        Scene sceneHUD = SceneManager.GetSceneByName("HUD");
+        Scene sceneMain = SceneManager.GetSceneByName("Main");
+        yield return new WaitUntil(() => sceneHUD.isLoaded && sceneMain.isLoaded);
+
+        SceneManager.SetActiveScene(sceneMain);
+
+        NetworkClient.Instance.socketManagerRef.GetSocket().Emit("MainSceneLoaded");
+
+        SceneManager.UnloadSceneAsync("Menu");
+
+        m_HUDUIManager = HUDUIManager.Instance;
+    }
+
+    #endregion
 
 }

@@ -1,0 +1,2 @@
+model_checkpoint_path: "FightCam_cnn_weights.ckpt"
+all_model_checkpoint_paths: "FightCam_cnn_weights.ckpt"

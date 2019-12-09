@@ -6,12 +6,14 @@ module.exports = class PlayerGroup {
 
     constructor() {
         this.id = shortID.generate();
-        this.position = new Vector3(Math.floor(Math.random() * Math.floor(10)), 0, Math.floor(Math.random() * Math.floor(10)));
+        //this.position = new Vector3(Math.floor(Math.random() * Math.floor(10)), 0, Math.floor(Math.random() * Math.floor(10)));
         this.players = [];
-        this.isInBattle = false;
+        //this.isInBattle = false;
     }
 
     AddPlayer(player) {
-        this.players.push(player);
+        if(!player.isInBattle) {
+            this.players.push(player);
+        }
     }
 }

@@ -3,6 +3,8 @@ var Vector3 = require('../utils/MyVector3')
 var Vector2 = require('../utils/MyVector2')
 var SpellDot = require('./SpellDot')
 
+var DQN = require('../AI/DQN')
+
 module.exports = class Character {
     constructor(baseCharacteristic, spells, isAI = false, isTrainable=false) {
         //ID
@@ -43,6 +45,7 @@ module.exports = class Character {
         //AI
         this.isAI = isAI;
         this.isTrainable = isTrainable;
+        this.dqn = new DQN();
     }
 
 //#region Base_charact_handling
@@ -142,16 +145,39 @@ module.exports = class Character {
 
 //#endregion Time_Management
 
-//#region AI
+    //#region AI
 
-    // BuildModel(scope) {
-    //     tf.
-    // }
+    PickAction(ennemySt) {
+        if(this.isAI) {
+            let st = [this.baseCharacteristic.type, this.currentHealth, this.currentActionPoints, this.currentMovementPoints, this.positionArrayFight.x, this.positionArrayFight.y,
+            ennemySt[0], ennemySt[1], ennemySt[2], ennemySt[3], ennemySt[4], ennemySt[5]];
+            //{pm : X, pa : X, map : {x : X, y : X}, pos : {x : X, y : X}, spells : [{...}, {...}, ...], actions : ["move", "spell", "endTurn"]}
+            let data = {
+                pm : this.currentMovementPoints,
+                pa : this.currentActionPoints,
+                map : {
+                    x : 15,
+                    y : 15
+                },
+                pos : {
+                    x : this.positionArrayFight.x,
+                    y : this.positionArrayFight.y
+                },
+                spells : this.spells,
+                spellKeys : Object.keys(this.spells),
+                actions : [
+                    "move",
+                    "spell",
+                    "endTurn"
+                ]
+            }
+            console.log(data);
+            let act = this.dqn.PickAction(st, data);
+            return act;
+        }
+        return null;
+    }
 
-    // NextStep() {
-
-    // }
-
-//#endregion AI
+    //#endregion AI
 
 }

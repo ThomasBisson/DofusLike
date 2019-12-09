@@ -96,7 +96,7 @@ public class NetworkClient : MonoBehaviour
 
         socketManagerRef.Socket.On("LoadMainScene", (socket, packet, args) =>
         {
-            MenuTemporary.Instance.GoToMainScene();
+            GameManager.Instance.GoToMainScene();
         });
 
         socketManagerRef.Socket.On("register", (socket, packet, args) =>
@@ -173,14 +173,15 @@ public class NetworkClient : MonoBehaviour
 
             //Get needed values in data
             var dataGroup = args[0] as Dictionary<string, object>;
-            var dataEnnemiesAsList = dataGroup["monsters"] as List<object>;
+            //var dataEnnemiesAsList = dataGroup["monsters"] as List<object>;
+            var dataEnnemiesAsDic = dataGroup["monsters"] as Dictionary<string, object>;
             var dataPosGroup = dataGroup["position"] as Dictionary<string, object>;
             var dataEnnemies = new List<Dictionary<string, object>>();
             var dataEnnemiesCaracteristic = new List<Dictionary<string, object>>();
 
-            foreach (var obj in dataEnnemiesAsList)
+            foreach (var obj in dataEnnemiesAsDic)
             {
-                dataEnnemies.Add(obj as Dictionary<string, object>);
+                dataEnnemies.Add(obj.Value as Dictionary<string, object>);
                 dataEnnemiesCaracteristic.Add(dataEnnemies[dataEnnemies.Count - 1]["baseCharacteristic"] as Dictionary<string, object>);
             }
             string id = dataGroup["id"] as string;
@@ -200,9 +201,11 @@ public class NetworkClient : MonoBehaviour
             List<NetworkIdentity> niEnnemies = new List<NetworkIdentity>();
             for (int i = 0; i < dataEnnemies.Count; i++)
             {
+                //Create ennemies
                 goEnnemy = Instantiate((GameObject)Resources.Load("EnnemiesPrefabs/" + dataEnnemiesCaracteristic[i]["name"], typeof(GameObject)), go.transform);
                 goEnnemy.name = dataEnnemiesCaracteristic[i]["name"] + " " + dataEnnemies[i]["id"];
 
+                //Set their NetworkIdentity 
                 NetworkIdentity niEnnemy = goEnnemy.GetComponent<NetworkIdentity>();
                 niEnnemy.SetControllerID(dataEnnemies[i]["id"] as string);
                 niEnnemy.SetSocketReference(this);
